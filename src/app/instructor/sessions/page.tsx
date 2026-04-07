@@ -16,6 +16,7 @@ export default function InstructorSessionsPage() {
   const [lectureId, setLectureId] = useState("");
   const [quizId, setQuizId] = useState("");
   const [session, setSession] = useState<Session | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const [questionId, setQuestionId] = useState("");
   const [answer, setAnswer] = useState("");
   const startSessionMutation = useStartSessionMutation();
@@ -59,6 +60,15 @@ export default function InstructorSessionsPage() {
     } catch {
       toast.error("클립보드 복사에 실패했습니다.");
     }
+  };
+
+  const handleSendAnnouncement = () => {
+    if (!announcement.trim()) {
+      toast.error("공지 메시지를 입력해주세요.");
+      return;
+    }
+    toast.success("수강생에게 공지 메시지를 전송했습니다.");
+    setAnnouncement("");
   };
 
   return (
@@ -151,6 +161,27 @@ export default function InstructorSessionsPage() {
             </Button>
           </div>
           <pre className="rounded-lg bg-muted p-3 text-xs whitespace-pre-wrap">{eventText}</pre>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>세션 운영 도구</CardTitle>
+          <CardDescription>수강생 공지, 운영 메모, 세션 진행 체크를 관리합니다.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+            <Input
+              value={announcement}
+              onChange={(event) => setAnnouncement(event.target.value)}
+              placeholder="예: 10분 후 중간 퀴즈를 시작합니다."
+            />
+            <Button type="button" onClick={handleSendAnnouncement}>
+              공지 전송
+            </Button>
+          </div>
+          <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+            운영 팁: 세션 시작 직후 참여코드를 재공지하고, 중간 체크 질문으로 집중도를 유지하세요.
+          </div>
         </CardContent>
       </Card>
     </section>
