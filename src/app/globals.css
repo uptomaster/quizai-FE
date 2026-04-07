@@ -123,6 +123,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(900px 380px at 8% -10%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 65%),
+      radial-gradient(760px 320px at 92% -14%, color-mix(in oklab, oklch(0.72 0.21 320) 20%, transparent), transparent 62%);
   }
   html {
     @apply font-sans;

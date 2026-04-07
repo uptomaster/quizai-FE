@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -63,12 +63,45 @@ export default function InstructorLecturesPage() {
     }
   };
 
+  const openedCourses = useMemo(
+    () => [
+      {
+        id: "course-01",
+        name: "데이터베이스 기초",
+        week: "화/목 10:00",
+        students: 42,
+        status: "진행 중",
+        lectureId: uploadedLecture?.id ?? "db-101",
+        summary: "ERD 설계, 정규화, SQL 기본 쿼리를 다루는 코스",
+      },
+      {
+        id: "course-02",
+        name: "웹 프론트엔드 실습",
+        week: "월/수 14:00",
+        students: 58,
+        status: "모집 중",
+        lectureId: "fe-201",
+        summary: "React 기반 컴포넌트 설계와 상태 관리 실전",
+      },
+      {
+        id: "course-03",
+        name: "AI 기반 서비스 기획",
+        week: "금 16:00",
+        students: 35,
+        status: "준비 중",
+        lectureId: "ai-301",
+        summary: "생성형 AI API를 활용한 제품 설계/평가 방법론",
+      },
+    ],
+    [uploadedLecture?.id],
+  );
+
   return (
     <section className="space-y-6">
       <PageHero
         title="강의 자료 / AI 퀴즈 생성"
         description="PDF 업로드 - lecture_id 발급 - AI 퀴즈 생성 순서로 진행됩니다."
-        className="from-blue-500/10 via-teal-500/10 to-purple-500/10"
+        className="from-cyan-500/20 via-fuchsia-500/20 to-indigo-500/20"
       />
       <HelperTip
         title="빠른 시작 가이드"
@@ -78,6 +111,49 @@ export default function InstructorLecturesPage() {
           "문항 수를 지정하고 퀴즈 생성을 실행합니다.",
         ]}
       />
+      <Card>
+        <CardHeader>
+          <CardTitle>개설 과목</CardTitle>
+          <CardDescription>과목 카드를 열어서 스케줄/수강인원/lecture_id를 확인하세요.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {openedCourses.map((course) => (
+            <details
+              key={course.id}
+              className="group rounded-xl border bg-gradient-to-r from-white/70 to-white/30 p-3 open:from-primary/5 open:to-fuchsia-500/5"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium">{course.name}</p>
+                  <p className="text-xs text-muted-foreground">{course.week}</p>
+                </div>
+                <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground group-open:bg-primary/10 group-open:text-primary">
+                  {course.status}
+                </span>
+              </summary>
+              <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
+                <p>
+                  수강 인원: <span className="font-medium text-foreground">{course.students}명</span>
+                </p>
+                <p>
+                  lecture_id: <span className="font-medium text-foreground">{course.lectureId}</span>
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setLectureId(course.lectureId)}
+                  className="justify-self-start"
+                >
+                  이 ID로 퀴즈 생성
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{course.summary}</p>
+            </details>
+          ))}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>PDF 업로드</CardTitle>
@@ -119,7 +195,7 @@ export default function InstructorLecturesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-primary/20 shadow-sm">
         <CardHeader>
           <CardTitle>퀴즈 생성</CardTitle>
           <CardDescription>업로드된 lecture_id 또는 기존 ID로 퀴즈를 생성합니다.</CardDescription>

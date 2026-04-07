@@ -59,7 +59,7 @@ const SidebarLinks = ({
           className={cn(
             "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
             active
-              ? "bg-primary text-primary-foreground"
+              ? "bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-sm"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
@@ -92,7 +92,9 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 border-r bg-card/60 px-4 py-6 backdrop-blur md:block">
-        <h1 className="mb-2 text-lg font-semibold">QuizAI</h1>
+        <h1 className="mb-2 bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500 bg-clip-text text-lg font-bold text-transparent">
+          QuizAI
+        </h1>
         <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
           {roleIcon}
           {roleLabel} 모드
