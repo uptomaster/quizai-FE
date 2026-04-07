@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { Menu, Shield, User, Users } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { getStoredRole } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/api";
 
@@ -73,14 +72,29 @@ const SidebarLinks = ({
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [role] = useState<UserRole>(() => getStoredRole() ?? "student");
+  const role = useMemo<UserRole>(() => {
+    if (pathname.startsWith("/instructor")) {
+      return "instructor";
+    }
+    if (pathname.startsWith("/admin")) {
+      return "admin";
+    }
+    return "student";
+  }, [pathname]);
 
   const navItems = useMemo(() => NAV_MAP[role], [role]);
+  const roleLabel = role === "instructor" ? "교강사" : role === "admin" ? "운영자" : "수강생";
+  const roleIcon =
+    role === "instructor" ? <Users className="h-4 w-4" /> : role === "admin" ? <Shield className="h-4 w-4" /> : <User className="h-4 w-4" />;
 
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 border-r bg-card px-4 py-6 md:block">
-        <h1 className="mb-6 text-lg font-semibold">QuizAI</h1>
+        <h1 className="mb-2 text-lg font-semibold">QuizAI</h1>
+        <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+          {roleIcon}
+          {roleLabel} 모드
+        </div>
         <SidebarLinks items={navItems} pathname={pathname} />
       </aside>
 

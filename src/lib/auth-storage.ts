@@ -1,4 +1,4 @@
-import type { AppUser, UserRole } from "@/types/api";
+import type { AppUser, AuthTokens, UserRole } from "@/types/api";
 
 const USER_KEY = "quizai_user";
 
@@ -14,6 +14,18 @@ export const saveUser = (user: AppUser): void => {
   }
 
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+};
+
+export const saveAuthSession = (user: AppUser, tokens: AuthTokens): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(AUTH_KEYS.accessToken, tokens.accessToken);
+  if (tokens.refreshToken) {
+    localStorage.setItem(AUTH_KEYS.refreshToken, tokens.refreshToken);
+  }
+  saveUser(user);
 };
 
 export const getStoredUser = (): AppUser | null => {

@@ -76,6 +76,12 @@ export interface GenerateQuizRequest {
   questionCount: number;
 }
 
+export interface UploadLectureRequest {
+  file: File;
+  title?: string;
+  description?: string;
+}
+
 export interface Session {
   id: string;
   lectureId: string;
@@ -86,6 +92,11 @@ export interface Session {
   startedAt?: string;
   endedAt?: string;
   createdAt: string;
+}
+
+export interface StartSessionRequest {
+  lectureId: string;
+  quizId: string;
 }
 
 export interface SessionAnswerRequest {
