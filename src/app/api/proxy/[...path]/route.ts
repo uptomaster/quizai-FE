@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_TARGET = process.env.API_SERVER_URL?.trim() || "https://quizai-api.onrender.com";
+const ENABLE_MOCK_FALLBACK = process.env.ENABLE_PROXY_MOCK_FALLBACK !== "false";
 
 const FORWARDED_HEADERS = [
   "authorization",
@@ -13,6 +14,236 @@ const buildTargetUrl = (path: string[], searchParams: URLSearchParams): string =
   const normalizedPath = path.join("/");
   const query = searchParams.toString();
   return `${API_TARGET}/${normalizedPath}${query ? `?${query}` : ""}`;
+};
+
+const createTokenResponse = (email: string, role: "student" | "instructor" | "admin") => ({
+  access_token: `mock-token-${role}`,
+  token_type: "bearer",
+  user: {
+    id: `mock-${role}-${crypto.randomUUID()}`,
+    email,
+    name: `Mock ${role}`,
+    role,
+  },
+});
+
+const buildMockResponse = async (request: NextRequest, path: string[]) => {
+  const routePath = `/${path.join("/")}`;
+  const method = request.method.toUpperCase();
+  const headers = { "x-proxy-mock": "true" };
+
+  if (method === "GET" && routePath === "/health") {
+    return NextResponse.json({ status: "ok", mode: "mock-fallback" }, { status: 200, headers });
+  }
+
+  if (method === "POST" && routePath === "/auth/login") {
+    const body = (await request.json().catch(() => ({}))) as { email?: string };
+    const email = body.email ?? "student@quizai.local";
+    const role = email.includes("admin")
+      ? "admin"
+      : email.includes("instructor")
+        ? "instructor"
+        : "student";
+    return NextResponse.json(createTokenResponse(email, role), { status: 200, headers });
+  }
+
+  if (method === "POST" && routePath === "/auth/register") {
+    const body = (await request.json().catch(() => ({}))) as {
+      email?: string;
+      role?: "student" | "instructor" | "admin";
+    };
+    const email = body.email ?? "student@quizai.local";
+    const role = body.role ?? "student";
+    return NextResponse.json(createTokenResponse(email, role), { status: 201, headers });
+  }
+
+  if (method === "POST" && routePath === "/lectures/upload") {
+    return NextResponse.json(
+      {
+        lecture_id: `lec_${crypto.randomUUID().slice(0, 8)}`,
+        title: "Mock Lecture",
+        file_url: "https://example.com/mock.pdf",
+        text_length: 4820,
+        created_at: new Date().toISOString(),
+      },
+      { status: 201, headers },
+    );
+  }
+
+  if (method === "GET" && routePath === "/lectures") {
+    return NextResponse.json(
+      {
+        lectures: [
+          {
+            lecture_id: "lec_mock_001",
+            title: "머신러닝 기초",
+            quiz_count: 5,
+            created_at: new Date().toISOString(),
+            is_enrolled: false,
+          },
+        ],
+        total: 1,
+      },
+      { status: 200, headers },
+    );
+  }
+
+  if (method === "POST" && /^\/lectures\/[^/]+\/enroll$/.test(routePath)) {
+    const lectureId = routePath.split("/")[2] ?? "lec_mock_001";
+    return NextResponse.json(
+      { lecture_id: lectureId, status: "enrolled" },
+      { status: 200, headers },
+    );
+  }
+
+  if (method === "POST" && routePath === "/quizzes/generate") {
+    return NextResponse.json(
+      {
+        quiz_set_id: `qs_${crypto.randomUUID().slice(0, 8)}`,
+        lecture_id: "lec_mock_001",
+        quizzes: [
+          {
+            id: "q_001",
+            question: "지도학습과 비지도학습의 가장 큰 차이점은?",
+            options: [
+              "사용하는 알고리즘의 종류",
+              "레이블(정답) 데이터의 유무",
+              "처리할 수 있는 데이터의 크기",
+              "모델의 연산 속도",
+            ],
+            answer: 1,
+            explanation:
+              "지도학습은 레이블 데이터를 사용하고 비지도학습은 레이블 없이 패턴을 찾습니다.",
+          },
+        ],
+      },
+      { status: 201, headers },
+    );
+  }
+
+  if (method === "POST" && routePath === "/sessions/start") {
+    const sessionId = `sess_${crypto.randomUUID().slice(0, 8)}`;
+    return NextResponse.json(
+      {
+        session_id: sessionId,
+        session_code: "A7K3B9",
+        ws_url: `wss://quizai-api.onrender.com/sessions/${sessionId}/join`,
+        status: "waiting",
+      },
+      { status: 201, headers },
+    );
+  }
+
+  if (method === "POST" && routePath === "/sessions/join") {
+    const sessionId = `sess_${crypto.randomUUID().slice(0, 8)}`;
+    return NextResponse.json(
+      {
+        session_id: sessionId,
+        session_code: "A7K3B9",
+        ws_url: `wss://quizai-api.onrender.com/sessions/${sessionId}/join`,
+        status: "active",
+      },
+      { status: 200, headers },
+    );
+  }
+
+  if (method === "GET" && routePath.startsWith("/sessions/") && routePath.endsWith("/result")) {
+    const sessionId = routePath.split("/")[2] ?? "sess_mock_001";
+    return NextResponse.json(
+      {
+        session_id: sessionId,
+        total_students: 24,
+        avg_score: 68.5,
+        grade_distribution: {
+          excellent: 10,
+          needs_practice: 9,
+          needs_review: 5,
+        },
+        weak_concepts: ["과적합", "정규화"],
+        quiz_stats: [
+          {
+            quiz_id: "q_001",
+            correct_count: 18,
+            wrong_count: 6,
+            error_rate: 25.0,
+          },
+        ],
+        students: [
+          {
+            student_id: "mock-student-001",
+            nickname: "이수진",
+            score: 67,
+            grade: "needs_practice",
+            answers: [{ quiz_id: "q_001", is_correct: true, selected_option: 1 }],
+          },
+        ],
+      },
+      { status: 200, headers },
+    );
+  }
+
+  if (method === "GET" && routePath === "/dashboard/instructor") {
+    return NextResponse.json(
+      {
+        instructor_id: "mock-instructor-001",
+        total_sessions: 12,
+        avg_participation_rate: 88.0,
+        avg_correct_rate: 71.5,
+        quality_score: {
+          quiz_frequency: 85,
+          student_performance: 72,
+          followup_action: 90,
+          total: 82,
+        },
+        recent_sessions: [
+          {
+            session_id: "sess_001",
+            lecture_title: "머신러닝 기초",
+            student_count: 24,
+            avg_score: 68.5,
+            created_at: new Date().toISOString(),
+          },
+        ],
+      },
+      { status: 200, headers },
+    );
+  }
+
+  if (method === "GET" && routePath === "/dashboard/admin") {
+    return NextResponse.json(
+      {
+        platform: {
+          active_sessions: 12,
+          today_sessions: 47,
+          avg_participation: 82.0,
+        },
+        instructors: [
+          {
+            instructor_id: "mock-instructor-001",
+            name: "김민준",
+            total_sessions: 12,
+            avg_participation_rate: 88.0,
+            quality_score: 92,
+          },
+        ],
+        at_risk_students: [
+          {
+            student_id: "mock-student-001",
+            name: "최지수",
+            risk_level: "high",
+            risk_score: 92,
+            risk_factors: ["미참여 3회", "연속 오답", "접속 이탈"],
+          },
+        ],
+      },
+      { status: 200, headers },
+    );
+  }
+
+  return NextResponse.json(
+    { detail: `Mock fallback not implemented for ${method} ${routePath}` },
+    { status: 501, headers },
+  );
 };
 
 const proxyRequest = async (
@@ -34,12 +265,24 @@ const proxyRequest = async (
     request.method !== "GET" && request.method !== "HEAD";
   const requestBody = shouldHaveBody ? await request.arrayBuffer() : undefined;
 
-  const response = await fetch(targetUrl, {
-    method: request.method,
-    headers,
-    body: requestBody,
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      body: requestBody,
+      cache: "no-store",
+    });
+  } catch {
+    if (ENABLE_MOCK_FALLBACK) {
+      return buildMockResponse(request, path);
+    }
+    return NextResponse.json({ detail: "Upstream request failed" }, { status: 502 });
+  }
+
+  if (ENABLE_MOCK_FALLBACK && response.status === 503) {
+    return buildMockResponse(request, path);
+  }
 
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete("content-encoding");

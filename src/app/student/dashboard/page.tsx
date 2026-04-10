@@ -13,7 +13,12 @@ export default function StudentDashboardPage() {
         title="오늘 학습 리포트"
         description="오늘 강의의 85%를 이해했어요! 오답 개념만 빠르게 복습하면 완벽합니다."
         actions={
-          <Button onClick={() => window.location.assign("/student/join")}>세션 참여하기</Button>
+          <>
+            <Button variant="outline" onClick={() => window.location.assign("/student/lectures")}>
+              수업 신청
+            </Button>
+            <Button onClick={() => window.location.assign("/student/join")}>세션 참여하기</Button>
+          </>
         }
       />
       <div className="grid gap-4 md:grid-cols-3">

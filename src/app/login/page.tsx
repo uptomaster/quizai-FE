@@ -67,7 +67,9 @@ export default function LoginPage() {
             </Link>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            실데이터 검증을 위해 데모 로그인은 비활성화되었습니다.
+            API가 꺼져 있어 프록시 모의 응답을 쓰는 경우, 이메일에{" "}
+            <span className="font-medium text-foreground">instructor</span> 또는{" "}
+            <span className="font-medium text-foreground">admin</span>이 포함되면 해당 역할로 로그인됩니다.
           </p>
         </CardContent>
       </Card>

@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelperTip } from "@/components/common/helper-tip";
 import { PageHero } from "@/components/common/page-hero";
@@ -38,7 +40,12 @@ export default function StudentJoinPage() {
     <section className="space-y-6">
       <PageHero
         title="퀴즈 대기실"
-        description="6자리 코드를 입력하면 바로 입장합니다. 토스 송금처럼 빠르고 단순하게."
+        description="6자리 코드를 입력하면 바로 입장합니다. 일부 서버에서는 해당 강의에 수강 신청이 된 계정만 세션 참여가 허용됩니다."
+        actions={
+          <Link href="/student/lectures" className={cn(buttonVariants({ variant: "outline" }))}>
+            수업 신청하러 가기
+          </Link>
+        }
       />
       <Card className="mx-auto max-w-xl">
         <CardHeader>
@@ -63,6 +70,7 @@ export default function StudentJoinPage() {
       <HelperTip
         title="플레이 시작 전"
         steps={[
+          "참여가 거절되면 먼저 수업 신청(강의 목록)에서 해당 과목을 신청했는지 확인하세요.",
           "문항은 한 화면에 하나씩 노출됩니다.",
           "선택지 클릭 시 즉시 피드백이 제공됩니다.",
           "종료 후 개인 리포트를 확인할 수 있습니다.",

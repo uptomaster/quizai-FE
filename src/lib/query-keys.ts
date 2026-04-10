@@ -8,7 +8,9 @@ export const queryKeys = {
   },
   lectures: {
     all: ["lectures"] as const,
+    list: (page: number, limit: number) => ["lectures", "list", page, limit] as const,
     upload: ["lectures", "upload"] as const,
+    enroll: ["lectures", "enroll"] as const,
   },
   sessions: {
     all: ["sessions"] as const,

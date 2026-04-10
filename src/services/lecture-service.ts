@@ -1,5 +1,5 @@
-import { apiClient } from "@/lib/api-client";
-import type { Lecture, UploadLectureRequest } from "@/types/api";
+import { apiClient, apiRequest } from "@/lib/api-client";
+import type { Lecture, LectureEnrollResponse, LecturesListResponse, UploadLectureRequest } from "@/types/api";
 
 interface LectureUploadResponse {
   lecture_id: string;
@@ -10,6 +10,22 @@ interface LectureUploadResponse {
 }
 
 export const lectureService = {
+  list(page = 1, limit = 20) {
+    return apiRequest<LecturesListResponse>({
+      method: "GET",
+      url: "/lectures",
+      params: { page, limit },
+    });
+  },
+
+  enroll(lectureId: string) {
+    return apiRequest<LectureEnrollResponse, Record<string, never>>({
+      method: "POST",
+      url: `/lectures/${encodeURIComponent(lectureId)}/enroll`,
+      data: {},
+    });
+  },
+
   async uploadPdf(payload: UploadLectureRequest): Promise<Lecture> {
     const formData = new FormData();
     formData.append("file", payload.file);

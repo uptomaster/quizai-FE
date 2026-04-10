@@ -34,6 +34,18 @@ export interface Lecture {
   text_length?: number;
   quiz_count?: number;
   created_at: string;
+  /** When provided by API, indicates the student is enrolled (can join sessions for this class). */
+  is_enrolled?: boolean;
+}
+
+export interface LecturesListResponse {
+  lectures: Lecture[];
+  total: number;
+}
+
+export interface LectureEnrollResponse {
+  lecture_id: string;
+  status: string;
 }
 
 export interface QuizQuestion {

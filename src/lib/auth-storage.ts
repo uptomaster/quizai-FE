@@ -55,12 +55,12 @@ export const getStoredRole = (): UserRole | null => {
   return user?.role ?? null;
 };
 
-export const getRoleHomePath = (role: UserRole): string => {
-  const roleHomePathMap: Record<UserRole, string> = {
-    instructor: "/instructor/dashboard",
-    student: "/student/dashboard",
-    admin: "/admin/dashboard",
-  };
-
-  return roleHomePathMap[role];
+export const getRoleHomePath = (role: UserRole | null | undefined): string => {
+  if (role === "instructor") {
+    return "/instructor/dashboard";
+  }
+  if (role === "admin") {
+    return "/admin/dashboard";
+  }
+  return "/student/dashboard";
 };

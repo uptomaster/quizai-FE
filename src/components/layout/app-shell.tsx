@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BookOpen, LayoutDashboard, LogOut, Menu, Shield, User, Users } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { BarChart3, BookOpen, LayoutDashboard, LogOut, Menu, School, Shield, User, Users } from "lucide-react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { clearAuthSession } from "@/lib/auth-storage";
+import { clearAuthSession, getStoredRole } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/api";
 
@@ -29,6 +29,7 @@ const NAV_MAP: Record<UserRole, NavItem[]> = {
   ],
   student: [
     { href: "/student/dashboard", label: "내 진행현황", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { href: "/student/lectures", label: "수업 신청", icon: <School className="h-4 w-4" /> },
     { href: "/student/join", label: "세션 참여", icon: <BookOpen className="h-4 w-4" /> },
     { href: "/student/play", label: "실시간 퀴즈", icon: <BookOpen className="h-4 w-4" /> },
     { href: "/student/sessions", label: "응답 기록", icon: <BarChart3 className="h-4 w-4" /> },
@@ -77,7 +78,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const role = useMemo<UserRole>(() => {
+  const pathnameRole = useMemo<UserRole>(() => {
     if (pathname.startsWith("/instructor")) {
       return "instructor";
     }
@@ -86,6 +87,13 @@ export function AppShell({ children }: AppShellProps) {
     }
     return "student";
   }, [pathname]);
+
+  const [storedRole, setStoredRole] = useState<UserRole | null>(null);
+  useEffect(() => {
+    setStoredRole(getStoredRole());
+  }, [pathname]);
+
+  const role = storedRole ?? pathnameRole;
 
   const navItems = useMemo(() => NAV_MAP[role], [role]);
   const roleLabel = role === "instructor" ? "교강사" : role === "admin" ? "운영자" : "수강생";
