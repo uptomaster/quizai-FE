@@ -1190,6 +1190,7 @@ login	@	auth-service.ts:19
 useLoginMutation.useMutation	@	use-login-mutation.ts:12
 await in execute		
 handleSubmit	@	page.tsx:26
+38. 지금 내가 테스트를해야하는데 백엔드 막혔으닠까 우회라도 해서 내가 테스트할 수 있게해
 
 ## Update Rule
 
