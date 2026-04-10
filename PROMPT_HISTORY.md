@@ -153,6 +153,498 @@ https://react.dev/link/hydration-mismatch
 19. https://quizai-be.onrender.com/docs  여기 백엔드 담당자가 배포한 링크인데 우리에 적용해야해
 20. 필요한 백엔드 정보가 더 있어? 이제 프론트엔드 API연결을 마무리지어야해서
 21. 내가 보내준 스웨거 링크로 프론트 백엔드 연결작업을 일단 완벽하게 진행해
+22. 응 테스트하자
+23. [HMR] connected
+lecture-service.ts:18  POST https://quizai-be.onrender.com/lectures/upload 401 (Unauthorized)
+dispatchXhrRequest @ xhr.js:220
+xhr @ xhr.js:16
+dispatchRequest @ dispatchRequest.js:48
+Promise.then
+_request @ Axios.js:180
+request @ Axios.js:41
+httpMethod @ Axios.js:241
+wrap @ bind.js:12
+uploadPdf @ lecture-service.ts:18
+useUploadLectureMutation.useMutation @ use-upload-lecture-mutation.ts:12
+fn @ mutation.ts:190
+run @ retryer.ts:156
+start @ retryer.ts:222
+execute @ mutation.ts:235
+await in execute
+mutate @ mutationObserver.ts:142
+handleUploadLecture @ page.tsx:69
+executeDispatch @ react-dom-client.development.js:20610
+runWithFiberInDEV @ react-dom-client.development.js:986
+processDispatchQueue @ react-dom-client.development.js:20660
+(anonymous) @ react-dom-client.development.js:21234
+batchedUpdates$1 @ react-dom-client.development.js:3377
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:20814
+dispatchEvent @ react-dom-client.development.js:25817
+dispatchDiscreteEvent @ react-dom-client.development.js:25785Understand this error
+api-client.ts:43  POST https://quizai-be.onrender.com/quizzes/generate 401 (Unauthorized)
+24. # 개요
+
+프론트엔드(quizai-FE)와 백엔드(quizai-BE)가 합의한 **JSON Request / Response 구조** 확정 문서입니다.
+
+이 문서를 기준으로 양측이 독립적으로 개발합니다. 스키마 변경 시 반드시 이 문서를 먼저 업데이트하고 상대방에게 알려야 합니다.
+
+> **Base URL (로컬):** `http://localhost:8000`
+> 
+
+> **Base URL (배포):** `https://quizai-api.onrender.com`
+> 
+
+> **인증 방식:** `Authorization: Bearer <access_token>` 헤더
+> 
+
+---
+
+# 1. 인증 (Auth)
+
+## POST /auth/register
+
+**Request**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "name": "김민준",
+  "role": "instructor"
+}
+```
+
+> role: `instructor` | `student` | `admin`
+> 
+
+**Response 201**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user": {
+    "id": "uuid-string",
+    "email": "user@example.com",
+    "name": "김민준",
+    "role": "instructor"
+  }
+}
+```
+
+**Response 400** (이미 존재하는 이메일)
+
+```json
+{
+  "detail": "Email already registered"
+}
+```
+
+---
+
+## POST /auth/login
+
+**Request**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**Response 200**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user": {
+    "id": "uuid-string",
+    "email": "user@example.com",
+    "name": "김민준",
+    "role": "instructor"
+  }
+}
+```
+
+**Response 401**
+
+```json
+{
+  "detail": "Invalid email or password"
+}
+```
+
+---
+
+# 2. 강의록 (Lectures)
+
+## POST /lectures/upload
+
+**Request** — `multipart/form-data`
+
+```
+file: <PDF/TXT/DOCX 파일>
+title: "머신러닝 기초" (선택)
+```
+
+**Response 201**
+
+```json
+{
+  "lecture_id": "lec_abc123",
+  "title": "머신러닝 기초",
+  "file_url": "https://storage.supabase.co/...",
+  "text_length": 4820,
+  "created_at": "2026-04-07T10:00:00Z"
+}
+```
+
+---
+
+## GET /lectures
+
+**Query Params:** `?page=1&limit=20`
+
+**Response 200**
+
+```json
+{
+  "lectures": [
+    {
+      "lecture_id": "lec_abc123",
+      "title": "머신러닝 기초",
+      "quiz_count": 5,
+      "created_at": "2026-04-07T10:00:00Z"
+    }
+  ],
+  "total": 12
+}
+```
+
+---
+
+# 3. 퀴즈 (Quizzes)
+
+## POST /quizzes/generate
+
+**Request**
+
+```json
+{
+  "lecture_id": "lec_abc123",
+  "count": 5,
+  "type": "multiple_choice"
+}
+```
+
+> type: `multiple_choice` | `short_answer`
+> 
+
+**Response 201**
+
+```json
+{
+  "quiz_set_id": "qs_xyz789",
+  "lecture_id": "lec_abc123",
+  "quizzes": [
+    {
+      "id": "q_001",
+      "question": "지도학습과 비지도학습의 가장 큰 차이점은?",
+      "options": [
+        "사용하는 알고리즘의 종류",
+        "레이블(정답) 데이터의 유무",
+        "처리할 수 있는 데이터의 크기",
+        "모델의 연산 속도"
+      ],
+      "answer": 1,
+      "explanation": "지도학습은 레이블 데이터를 사용하고 비지도학습은 레이블 없이 패턴을 찾습니다."
+    }
+  ]
+}
+```
+
+> `answer`는 0-based index
+> 
+
+**Response 400** (lecture_id 없음)
+
+```json
+{
+  "detail": "Lecture not found"
+}
+```
+
+---
+
+## GET /quizzes/{lecture_id}
+
+**Response 200**
+
+```json
+{
+  "lecture_id": "lec_abc123",
+  "quizzes": [
+    {
+      "id": "q_001",
+      "question": "...",
+      "options": ["①", "②", "③", "④"],
+      "answer": 1,
+      "explanation": "..."
+    }
+  ]
+}
+```
+
+---
+
+# 4. 세션 (Sessions)
+
+## POST /sessions/start
+
+**Request**
+
+```json
+{
+  "quiz_set_id": "qs_xyz789",
+  "time_limit": 30
+}
+```
+
+> `time_limit`: 문항당 제한 시간 (초)
+> 
+
+**Response 201**
+
+```json
+{
+  "session_id": "sess_001",
+  "session_code": "A7K3",
+  "ws_url": "wss://quizai-api.onrender.com/sessions/sess_001/join",
+  "status": "waiting"
+}
+```
+
+---
+
+## WS /sessions/{session_id}/join
+
+**연결 URL**
+
+```
+wss://quizai-api.onrender.com/sessions/{session_id}/join?nickname=이수진&token=JWT
+```
+
+**서버 → 클라이언트 이벤트**
+
+```json
+// 입장 확인
+{ "type": "session_joined", "payload": { "participant_count": 18, "nickname": "이수진" } }
+
+// 퀴즈 시작 (강사가 시작 누를 때)
+{ "type": "quiz_started", "payload": { "quiz_id": "q_001", "question": "...", "options": ["①","②","③","④"], "time_limit": 30 } }
+
+// 응답률 업데이트 (강사에게만)
+{ "type": "answer_update", "payload": { "total": 24, "answered": 18, "rate": 75.0, "distribution": [4, 11, 2, 1] } }
+
+// 정답 공개 (강사가 공개 버튼 클릭 시)
+{ "type": "answer_revealed", "payload": { "correct_option": 1, "explanation": "..." } }
+
+// 세션 종료
+{ "type": "session_ended", "payload": { "session_id": "sess_001" } }
+```
+
+**클라이언트 → 서버 메시지**
+
+```json
+// 강사: 퀴즈 시작
+{ "type": "quiz_start", "quiz_id": "q_001" }
+
+// 강사: 정답 공개
+{ "type": "reveal_answer" }
+
+// 강사: 세션 종료
+{ "type": "end_session" }
+```
+
+---
+
+## POST /sessions/{session_id}/answer
+
+**Request**
+
+```json
+{
+  "quiz_id": "q_001",
+  "selected_option": 1,
+  "response_time_ms": 7200
+}
+```
+
+> `selected_option`: 0-based index
+> 
+
+**Response 200**
+
+```json
+{
+  "is_correct": true,
+  "correct_option": 1,
+  "explanation": "지도학습은 레이블 데이터를 사용하고 비지도학습은 레이블 없이 패턴을 찾습니다."
+}
+```
+
+---
+
+## GET /sessions/{session_id}/result
+
+**Response 200**
+
+```json
+{
+  "session_id": "sess_001",
+  "total_students": 24,
+  "avg_score": 68.5,
+  "grade_distribution": {
+    "excellent": 10,
+    "needs_practice": 9,
+    "needs_review": 5
+  },
+  "weak_concepts": ["과적합", "정규화"],
+  "quiz_stats": [
+    {
+      "quiz_id": "q_001",
+      "correct_count": 18,
+      "wrong_count": 6,
+      "error_rate": 25.0
+    }
+  ],
+  "students": [
+    {
+      "student_id": "uuid",
+      "nickname": "이수진",
+      "score": 67,
+      "grade": "needs_practice",
+      "answers": [
+        { "quiz_id": "q_001", "is_correct": true, "selected_option": 1 }
+      ]
+    }
+  ]
+}
+```
+
+> grade: `excellent` | `needs_practice` | `needs_review`
+> 
+
+---
+
+# 5. 대시보드 (Dashboard)
+
+## GET /dashboard/instructor
+
+**Response 200**
+
+```json
+{
+  "instructor_id": "uuid",
+  "total_sessions": 12,
+  "avg_participation_rate": 88.0,
+  "avg_correct_rate": 71.5,
+  "quality_score": {
+    "quiz_frequency": 85,
+    "student_performance": 72,
+    "followup_action": 90,
+    "total": 82
+  },
+  "recent_sessions": [
+    {
+      "session_id": "sess_001",
+      "lecture_title": "머신러닝 기초",
+      "student_count": 24,
+      "avg_score": 68.5,
+      "created_at": "2026-04-07T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## GET /dashboard/admin
+
+**Response 200**
+
+```json
+{
+  "platform": {
+    "active_sessions": 12,
+    "today_sessions": 47,
+    "avg_participation": 82.0
+  },
+  "instructors": [
+    {
+      "instructor_id": "uuid",
+      "name": "김민준",
+      "total_sessions": 12,
+      "avg_participation_rate": 88.0,
+      "quality_score": 92
+    }
+  ],
+  "at_risk_students": [
+    {
+      "student_id": "uuid",
+      "name": "최지수",
+      "risk_level": "high",
+      "risk_score": 92,
+      "risk_factors": ["미참여 3회", "연속 오답", "접속 이탈"]
+    }
+  ]
+}
+```
+
+> risk_level: `high` | `medium` | `low`
+> 
+
+---
+
+# 6. 공통 에러 포맷
+
+모든 에러는 아래 형식으로 통일합니다.
+
+```json
+{
+  "detail": "에러 메시지"
+}
+```
+
+| HTTP 코드 | 상황 |
+| --- | --- |
+| 400 | 잘못된 요청 (필드 누락, 형식 오류) |
+| 401 | 인증 실패 (토큰 없음/만료) |
+| 403 | 권한 없음 (role 불일치) |
+| 404 | 리소스 없음 |
+| 500 | 서버 내부 오류 |
+
+---
+
+# 7. 프론트엔드 확인 요청 사항 (백엔드 → 프론트)
+
+아래 항목은 프론트엔드 담당자가 확인 후 이 페이지에 코멘트로 답변해주세요.
+
+- [ ]  `access_token` 키 이름 확정 (`access_token` vs `accessToken`)
+- [ ]  WebSocket 토큰 전달 방식 확정 (쿼리스트링 `?token=` vs 첫 메시지로 전송)
+- [ ]  업로드 진행률 필요 여부 (SSE or polling)
+- [ ]  수강생 결과 페이지에서 `nickname` 표시 or `name` 표시
+25. 회원가입 로그인은 잘 돼. 퀴즈세션도 만들어지는거같긴한데, 지금 UI UX가 너무 난잡해서 뭘 어떻게 하는지도 모르겠어. 이 사이트의 기능을 유저 친화적으로 더 풀어야해
+26. feat: 결과 분석 및 대시보드 구현
+feat: WebSocket 실시간 구현
+feat: 전체 구현 완료 및 Render 배포 설정
+feat: 전체 구현 완료 및 Render 배포 설정
+feat: 전체 구현 완료 및 Render 배포 설정
+fix:python version
+
+그리고 이런식으로 백엔드에서 커밋했으니 우리도 이런 규칙으로 커밋하도록해
 
 ## Update Rule
 
