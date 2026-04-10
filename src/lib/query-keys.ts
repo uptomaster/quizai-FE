@@ -15,4 +15,8 @@ export const queryKeys = {
     start: ["sessions", "start"] as const,
     join: ["sessions", "join"] as const,
   },
+  dashboard: {
+    instructor: ["dashboard", "instructor"] as const,
+    admin: ["dashboard", "admin"] as const,
+  },
 };

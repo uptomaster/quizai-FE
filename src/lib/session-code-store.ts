@@ -33,16 +33,15 @@ export const generateJoinCode = (): string => {
   );
 };
 
-export const createLocalSession = (lectureId: string, quizId: string): Session => {
+export const createLocalSession = (quizSetId: string, timeLimit: number): Session => {
+  const joinCode = generateJoinCode();
   const session: Session = {
-    id: `local-session-${crypto.randomUUID()}`,
-    lectureId,
-    quizId,
-    hostInstructorId: "local-instructor",
-    status: "waiting",
-    joinCode: generateJoinCode(),
-    startedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
+    session_id: `local-session-${crypto.randomUUID()}`,
+    session_code: joinCode,
+    ws_url: `${
+      process.env.NEXT_PUBLIC_WS_URL?.trim() || "wss://quizai-be.onrender.com"
+    }/sessions/${quizSetId}/join?time_limit=${timeLimit}`,
+    status: "active",
   };
 
   const sessions = readSessions();
@@ -52,6 +51,8 @@ export const createLocalSession = (lectureId: string, quizId: string): Session =
 
 export const findSessionByJoinCode = (joinCode: string): Session | null => {
   const sessions = readSessions();
-  const matched = sessions.find((session) => session.joinCode.toUpperCase() === joinCode.toUpperCase());
+  const matched = sessions.find(
+    (session) => session.session_code.toUpperCase() === joinCode.toUpperCase(),
+  );
   return matched ?? null;
 };

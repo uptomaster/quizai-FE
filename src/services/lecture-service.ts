@@ -1,6 +1,13 @@
 import { apiClient } from "@/lib/api-client";
 import type { Lecture, UploadLectureRequest } from "@/types/api";
 
+interface LectureUploadResponse {
+  lecture_id: string;
+  title: string;
+  text_length: number;
+  created_at: string;
+}
+
 export const lectureService = {
   async uploadPdf(payload: UploadLectureRequest): Promise<Lecture> {
     const formData = new FormData();
@@ -8,16 +15,18 @@ export const lectureService = {
     if (payload.title) {
       formData.append("title", payload.title);
     }
-    if (payload.description) {
-      formData.append("description", payload.description);
-    }
-
-    const response = await apiClient.post<Lecture>("/lectures/upload", formData, {
+    const response = await apiClient.post<LectureUploadResponse>("/lectures/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
 
-    return response.data;
+    return {
+      id: response.data.lecture_id,
+      title: response.data.title,
+      instructor_id: "unknown",
+      text_length: response.data.text_length,
+      created_at: response.data.created_at,
+    };
   },
 };

@@ -39,7 +39,6 @@ export default function LoginPage() {
       email: `${role}@quizai.local`,
       name: `Demo ${role}`,
       role,
-      createdAt: new Date().toISOString(),
     };
 
     saveAuthSession(demoUser, {

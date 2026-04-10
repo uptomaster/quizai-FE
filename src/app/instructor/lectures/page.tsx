@@ -41,11 +41,11 @@ const STATUS_BADGE_CLASS: Record<CourseStatus, string> = {
 
 export default function InstructorLecturesPage() {
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [lectureId, setLectureId] = useState("");
   const [count, setCount] = useState("5");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [quizSetId, setQuizSetId] = useState("");
   const [uploadedLecture, setUploadedLecture] = useState<Lecture | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | CourseStatus>("all");
@@ -56,6 +56,10 @@ export default function InstructorLecturesPage() {
 
   const handleUploadLecture = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!title.trim()) {
+      toast.error("강의 제목을 입력해주세요.");
+      return;
+    }
     if (!pdfFile) {
       toast.error("PDF 파일을 선택해주세요.");
       return;
@@ -65,7 +69,6 @@ export default function InstructorLecturesPage() {
       const lecture = await uploadLectureMutation.mutateAsync({
         file: pdfFile,
         title,
-        description,
       });
       setUploadedLecture(lecture);
       setLectureId(lecture.id);
@@ -80,13 +83,13 @@ export default function InstructorLecturesPage() {
 
     try {
       const payload: GenerateQuizRequest = {
-        lectureId,
-        questionCount: Number(count),
+        lecture_id: lectureId,
+        count: Number(count),
       };
 
       const data = await generateQuizMutation.mutateAsync(payload);
-
-      setQuestions(data);
+      setQuestions(data.quizzes);
+      setQuizSetId(data.quiz_set_id);
       toast.success("AI 퀴즈 생성이 완료되었습니다.");
     } catch {
       // apiRequest에서 토스트를 처리합니다.
@@ -322,7 +325,7 @@ export default function InstructorLecturesPage() {
                       <span className="font-medium text-foreground">{course.completionRate}%</span>
                     </p>
                     <p>
-                      lecture_id:{" "}
+                  lecture_id:{" "}
                       <span className="font-medium text-foreground">{course.lectureId}</span>
                     </p>
                   </div>
@@ -420,12 +423,8 @@ export default function InstructorLecturesPage() {
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="강의 제목 (선택)"
-            />
-            <Input
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="설명 (선택)"
+              placeholder="강의 제목"
+              required
             />
             <Input
               type="file"
@@ -442,6 +441,11 @@ export default function InstructorLecturesPage() {
             <p className="mt-3 text-sm text-muted-foreground">
               업로드 완료 lecture_id:{" "}
               <span className="font-medium text-foreground">{uploadedLecture.id}</span>
+            </p>
+          ) : null}
+          {quizSetId ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              최근 생성 quiz_set_id: <span className="font-medium">{quizSetId}</span>
             </p>
           ) : null}
           {pdfFile ? (
@@ -491,7 +495,7 @@ export default function InstructorLecturesPage() {
           {questions.map((question) => (
             <Card key={question.id} className="transition-all duration-300 hover:shadow-md">
               <CardContent className="pt-6">
-                <p className="font-medium">{question.prompt}</p>
+                <p className="font-medium">{question.question}</p>
               </CardContent>
             </Card>
           ))}

@@ -4,7 +4,6 @@ const USER_KEY = "quizai_user";
 
 export const AUTH_KEYS = {
   accessToken: "access_token",
-  refreshToken: "refresh_token",
   user: USER_KEY,
 } as const;
 
@@ -22,9 +21,6 @@ export const saveAuthSession = (user: AppUser, tokens: AuthTokens): void => {
   }
 
   localStorage.setItem(AUTH_KEYS.accessToken, tokens.accessToken);
-  if (tokens.refreshToken) {
-    localStorage.setItem(AUTH_KEYS.refreshToken, tokens.refreshToken);
-  }
   saveUser(user);
 };
 

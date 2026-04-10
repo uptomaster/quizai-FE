@@ -41,6 +41,7 @@ type QuizSocketEvent = {
 
 interface UseQuizSocketOptions {
   sessionId: string;
+  directWsUrl?: string;
   enabled?: boolean;
   wsBaseUrl?: string;
   onQuizStarted?: (payload: QuizSocketEventMap["quiz_started"]) => void;
@@ -60,6 +61,7 @@ const DEFAULT_WS_BASE_URL =
 
 export function useQuizSocket({
   sessionId,
+  directWsUrl,
   enabled = true,
   wsBaseUrl = DEFAULT_WS_BASE_URL,
   onQuizStarted,
@@ -70,10 +72,7 @@ export function useQuizSocket({
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<QuizSocketEvent | null>(null);
 
-  const url = useMemo(
-    () => `${wsBaseUrl}/sessions/${sessionId}/join`,
-    [sessionId, wsBaseUrl],
-  );
+  const url = useMemo(() => directWsUrl || `${wsBaseUrl}/sessions/${sessionId}/join`, [directWsUrl, sessionId, wsBaseUrl]);
 
   const disconnect = useCallback(() => {
     socketRef.current?.close();

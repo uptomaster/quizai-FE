@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelperTip } from "@/components/common/helper-tip";
@@ -12,9 +14,7 @@ export default function StudentDashboardPage() {
         description="참여코드로 세션에 입장하고, 결과를 바로 확인하세요."
         className="from-violet-500/10 via-pink-500/10 to-amber-500/10"
         actions={
-          <Button asChild>
-            <a href="/student/join">세션 참여하기</a>
-          </Button>
+          <Button onClick={() => window.location.assign("/student/join")}>세션 참여하기</Button>
         }
       />
       <div className="grid gap-4 md:grid-cols-3">

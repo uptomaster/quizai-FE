@@ -15,7 +15,7 @@ export const sessionService = {
         data: payload,
       });
     } catch {
-      return createLocalSession(payload.lectureId, payload.quizId);
+      return createLocalSession(payload.quiz_set_id, payload.time_limit);
     }
   },
   join(payload: JoinSessionRequest) {
@@ -24,10 +24,8 @@ export const sessionService = {
       return Promise.resolve(localSession);
     }
 
-    return apiRequest<Session, JoinSessionRequest>({
-      method: "POST",
-      url: "/sessions/join",
-      data: payload,
-    });
+    return Promise.reject(
+      new Error("Swagger 스펙에 /sessions/join 엔드포인트가 없어 로컬 세션 코드만 지원됩니다."),
+    );
   },
 };

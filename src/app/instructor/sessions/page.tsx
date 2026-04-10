@@ -13,19 +13,20 @@ import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import type { Session, StartSessionRequest } from "@/types/api";
 
 export default function InstructorSessionsPage() {
-  const [lectureId, setLectureId] = useState("");
-  const [quizId, setQuizId] = useState("");
+  const [quizSetId, setQuizSetId] = useState("");
+  const [timeLimit, setTimeLimit] = useState("30");
   const [session, setSession] = useState<Session | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [questionId, setQuestionId] = useState("");
   const [answer, setAnswer] = useState("");
   const startSessionMutation = useStartSessionMutation();
 
-  const sessionId = session?.id ?? "";
+  const sessionId = session?.session_id ?? "";
 
   const socket = useQuizSocket({
     sessionId,
-    enabled: Boolean(session?.id),
+    directWsUrl: session?.ws_url,
+    enabled: Boolean(session?.session_id),
   });
 
   const eventText = useMemo(
@@ -38,8 +39,8 @@ export default function InstructorSessionsPage() {
 
     try {
       const payload: StartSessionRequest = {
-        lectureId,
-        quizId,
+        quiz_set_id: quizSetId,
+        time_limit: Number(timeLimit),
       };
       const startedSession = await startSessionMutation.mutateAsync(payload);
       setSession(startedSession);
@@ -50,12 +51,12 @@ export default function InstructorSessionsPage() {
   };
 
   const handleCopyJoinCode = async () => {
-    if (!session?.joinCode) {
+    if (!session?.session_code) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(session.joinCode);
+      await navigator.clipboard.writeText(session.session_code);
       toast.success("참여코드를 복사했습니다.");
     } catch {
       toast.error("클립보드 복사에 실패했습니다.");
@@ -81,7 +82,7 @@ export default function InstructorSessionsPage() {
       <HelperTip
         title="세션 운영 순서"
         steps={[
-          "lecture id와 quiz id로 세션을 시작합니다.",
+          "quiz set id와 제한 시간으로 세션을 시작합니다.",
           "생성된 참여코드를 학생에게 공유합니다.",
           "하단 실시간 채널에서 응답 이벤트를 모니터링합니다.",
         ]}
@@ -94,15 +95,18 @@ export default function InstructorSessionsPage() {
         <CardContent>
           <form onSubmit={handleStartSession} className="grid gap-3 md:grid-cols-3">
             <Input
-              value={lectureId}
-              onChange={(event) => setLectureId(event.target.value)}
-              placeholder="lecture id"
+              value={quizSetId}
+              onChange={(event) => setQuizSetId(event.target.value)}
+              placeholder="quiz set id"
               required
             />
             <Input
-              value={quizId}
-              onChange={(event) => setQuizId(event.target.value)}
-              placeholder="quiz id"
+              type="number"
+              min={10}
+              max={180}
+              value={timeLimit}
+              onChange={(event) => setTimeLimit(event.target.value)}
+              placeholder="time limit (sec)"
               required
             />
             <Button type="submit" disabled={startSessionMutation.isPending}>
@@ -112,10 +116,10 @@ export default function InstructorSessionsPage() {
           {session && (
             <div className="mt-3 rounded-lg border p-3 text-sm space-y-2">
               <p>
-                세션 ID: <span className="font-medium">{session.id}</span>
+                세션 ID: <span className="font-medium">{session.session_id}</span>
               </p>
               <p>
-                참여코드: <span className="font-medium text-primary">{session.joinCode}</span>
+                참여코드: <span className="font-medium text-primary">{session.session_code}</span>
               </p>
               <Button type="button" size="sm" variant="outline" onClick={handleCopyJoinCode}>
                 참여코드 복사

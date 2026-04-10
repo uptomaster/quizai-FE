@@ -23,8 +23,12 @@ export default function StudentJoinPage() {
       const data = await joinSessionMutation.mutateAsync({ joinCode });
       setJoinedSession(data);
       toast.success("세션 참여에 성공했습니다.");
-    } catch {
-      // apiRequest에서 토스트를 처리합니다.
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "세션 참여에 실패했습니다. 참여코드를 확인해주세요.";
+      toast.error(message);
     }
   };
 
@@ -70,10 +74,10 @@ export default function StudentJoinPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              세션 ID: <span className="font-medium">{joinedSession.id}</span>
+              세션 ID: <span className="font-medium">{joinedSession.session_id}</span>
             </p>
             <p>
-              참여코드: <span className="font-medium text-primary">{joinedSession.joinCode}</span>
+              참여코드: <span className="font-medium text-primary">{joinedSession.session_code}</span>
             </p>
           </CardContent>
         </Card>
