@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { AuthRolePicker } from "@/components/auth/auth-role-picker";
+import { SiteLogo } from "@/components/common/site-logo";
 import { useRegisterMutation } from "@/hooks/api/use-register-mutation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +51,12 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-0px)] max-w-md flex-col justify-center px-4 py-10">
+      <div className="mb-6 flex justify-center">
+        <Link href="/" className="rounded-lg outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring">
+          <SiteLogo size={72} priority className="rounded-2xl" />
+          <span className="sr-only">QuizAI 홈으로</span>
+        </Link>
+      </div>
       <p className="mb-4 text-center">
         <Link
           href="/"
