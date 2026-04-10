@@ -5,7 +5,7 @@ import { clearAuthSession } from "@/lib/auth-storage";
 import type { ApiErrorPayload } from "@/types/api";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.trim() || "https://quizai-api.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL?.trim() || "/api/proxy";
 
 const getAccessToken = (): string | null => {
   if (typeof window === "undefined") {

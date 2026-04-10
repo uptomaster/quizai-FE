@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useLoginMutation } from "@/hooks/api/use-login-mutation";
 import { getRoleHomePath, saveAuthSession } from "@/lib/auth-storage";
-import type { AppUser, AuthRequest, UserRole } from "@/types/api";
+import type { AuthRequest } from "@/types/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,21 +31,6 @@ export default function LoginPage() {
     } catch {
       // apiRequest에서 토스트를 처리합니다.
     }
-  };
-
-  const handleDemoEntry = (role: UserRole) => {
-    const demoUser: AppUser = {
-      id: `demo-${role}`,
-      email: `${role}@quizai.local`,
-      name: `Demo ${role}`,
-      role,
-    };
-
-    saveAuthSession(demoUser, {
-      accessToken: "demo-token",
-      tokenType: "bearer",
-    });
-    router.push(getRoleHomePath(role));
   };
 
   return (
@@ -81,20 +66,9 @@ export default function LoginPage() {
               회원가입
             </Link>
           </div>
-          <div className="mt-4 space-y-2 rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground">백엔드 전 데모 진입</p>
-            <div className="grid grid-cols-3 gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => handleDemoEntry("student")}>
-                수강생
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => handleDemoEntry("instructor")}>
-                교강사
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => handleDemoEntry("admin")}>
-                운영자
-              </Button>
-            </div>
-          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            실데이터 검증을 위해 데모 로그인은 비활성화되었습니다.
+          </p>
         </CardContent>
       </Card>
     </div>

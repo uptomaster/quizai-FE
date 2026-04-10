@@ -14,6 +14,7 @@ export const queryKeys = {
     all: ["sessions"] as const,
     start: ["sessions", "start"] as const,
     join: ["sessions", "join"] as const,
+    result: (sessionId: string) => ["sessions", "result", sessionId] as const,
   },
   dashboard: {
     instructor: ["dashboard", "instructor"] as const,
