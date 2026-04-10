@@ -26,22 +26,22 @@ export default function AdminDashboardPage() {
       />
       <div className="grid gap-4 md:grid-cols-3">
         <StatTile
-          title="전체 사용자"
-          description="학생/교강사/관리자 합계"
-          value={String(platform?.total_users ?? 0)}
+          title="활성 세션"
+          description="현재 운영 중인 세션 수"
+          value={String(platform?.active_sessions ?? 0)}
           delta={dashboardQuery.isFetching ? "동기화 중" : "최신"}
         />
         <StatTile
-          title="총 세션 수"
-          description="플랫폼 전체 세션"
-          value={String(platform?.total_sessions ?? 0)}
+          title="오늘 세션 수"
+          description="금일 생성된 세션"
+          value={String(platform?.today_sessions ?? 0)}
           delta="실시간"
         />
         <StatTile
-          title="평균 정답률"
-          description="플랫폼 정답 정확도"
-          value={`${Math.round((platform?.avg_correct_rate ?? 0) * 100)}%`}
-          delta={`${platform?.total_answers ?? 0} answers`}
+          title="평균 참여율"
+          description="플랫폼 전체 참여율"
+          value={`${Math.round(platform?.avg_participation ?? 0)}%`}
+          delta="운영 지표"
         />
       </div>
     </section>

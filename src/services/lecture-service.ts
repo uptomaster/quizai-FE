@@ -4,6 +4,7 @@ import type { Lecture, UploadLectureRequest } from "@/types/api";
 interface LectureUploadResponse {
   lecture_id: string;
   title: string;
+  file_url: string;
   text_length: number;
   created_at: string;
 }
@@ -22,9 +23,9 @@ export const lectureService = {
     });
 
     return {
-      id: response.data.lecture_id,
+      lecture_id: response.data.lecture_id,
       title: response.data.title,
-      instructor_id: "unknown",
+      file_url: response.data.file_url,
       text_length: response.data.text_length,
       created_at: response.data.created_at,
     };

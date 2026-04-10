@@ -18,7 +18,7 @@ export default function InstructorSessionsPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [questionId, setQuestionId] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [answer, setAnswer] = useState("0");
   const startSessionMutation = useStartSessionMutation();
 
   const sessionId = session?.session_id ?? "";
@@ -87,6 +87,22 @@ export default function InstructorSessionsPage() {
           "하단 실시간 채널에서 응답 이벤트를 모니터링합니다.",
         ]}
       />
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-3 text-sm">
+          <div className="rounded-lg border bg-background p-3">
+            <p className="font-semibold">1) 세션 생성</p>
+            <p className="text-muted-foreground">`quiz_set_id` 입력 후 시작</p>
+          </div>
+          <div className="rounded-lg border bg-background p-3">
+            <p className="font-semibold">2) 참여코드 공유</p>
+            <p className="text-muted-foreground">학생에게 코드 전달</p>
+          </div>
+          <div className="rounded-lg border bg-background p-3">
+            <p className="font-semibold">3) 실시간 모니터링</p>
+            <p className="text-muted-foreground">연결 상태/이벤트 확인</p>
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>세션 생성</CardTitle>
@@ -151,16 +167,19 @@ export default function InstructorSessionsPage() {
             <Input
               value={questionId}
               onChange={(event) => setQuestionId(event.target.value)}
-              placeholder="question id"
+              placeholder="quiz id"
               disabled={!sessionId}
             />
             <Input
               value={answer}
               onChange={(event) => setAnswer(event.target.value)}
-              placeholder="answer"
+              placeholder="선택 옵션 인덱스 (예: 1)"
               disabled={!sessionId}
             />
-            <Button onClick={() => socket.sendAnswer(questionId, answer)} disabled={!sessionId}>
+            <Button
+              onClick={() => socket.sendAnswer(questionId, Number(answer))}
+              disabled={!sessionId || !questionId.trim() || Number.isNaN(Number(answer))}
+            >
               정답 제출
             </Button>
           </div>

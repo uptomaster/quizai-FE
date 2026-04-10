@@ -24,6 +24,15 @@ export const saveAuthSession = (user: AppUser, tokens: AuthTokens): void => {
   saveUser(user);
 };
 
+export const clearAuthSession = (): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.removeItem(AUTH_KEYS.accessToken);
+  localStorage.removeItem(AUTH_KEYS.user);
+};
+
 export const getStoredUser = (): AppUser | null => {
   if (typeof window === "undefined") {
     return null;

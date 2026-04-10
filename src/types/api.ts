@@ -28,34 +28,31 @@ export interface AuthRequest {
 }
 
 export interface Lecture {
-  id: string;
+  lecture_id: string;
   title: string;
-  instructor_id: string;
-  text_length: number;
+  file_url?: string;
+  text_length?: number;
+  quiz_count?: number;
   created_at: string;
-}
-
-export interface QuizChoice {
-  label: string;
-  text: string;
 }
 
 export interface QuizQuestion {
   id: string;
   question: string;
-  options: QuizChoice[];
-  answer: string;
-  explanation?: string;
+  options: string[];
+  answer: number;
+  explanation?: string | null;
 }
 
 export interface GenerateQuizRequest {
   lecture_id: string;
   count?: number;
-  quiz_type?: string;
+  type?: "multiple_choice" | "short_answer";
 }
 
 export interface GenerateQuizResponse {
   quiz_set_id: string;
+  lecture_id: string;
   quizzes: QuizQuestion[];
 }
 
@@ -78,67 +75,95 @@ export interface StartSessionRequest {
 
 export interface SessionAnswerRequest {
   quiz_id: string;
-  selected_option: string;
+  selected_option: number;
   response_time_ms: number;
 }
 
 export interface SessionAnswerResponse {
   is_correct: boolean;
-  correct_option: string;
+  correct_option: number;
   explanation?: string | null;
 }
 
-export interface StudentSessionResult {
-  user_id: string;
-  grade: string;
-  reason: string;
+export interface SessionQuizStat {
+  quiz_id: string;
+  correct_count: number;
+  wrong_count: number;
+  error_rate: number;
+}
+
+export interface SessionStudentAnswer {
+  quiz_id: string;
+  is_correct: boolean;
+  selected_option: number;
+}
+
+export interface SessionStudentResult {
+  student_id: string;
+  nickname: string;
+  score: number;
+  grade: "excellent" | "needs_practice" | "needs_review";
+  answers: SessionStudentAnswer[];
 }
 
 export interface SessionResult {
   session_id: string;
-  grade_distribution: Record<string, number>;
+  total_students: number;
+  avg_score: number;
+  grade_distribution: {
+    excellent: number;
+    needs_practice: number;
+    needs_review: number;
+  };
   weak_concepts: string[];
-  students: StudentSessionResult[];
+  quiz_stats: SessionQuizStat[];
+  students: SessionStudentResult[];
+}
+
+export interface InstructorQualityScore {
+  quiz_frequency: number;
+  student_performance: number;
+  followup_action: number;
+  total: number;
 }
 
 export interface InstructorRecentSession {
   session_id: string;
-  session_code: string;
-  status: string;
+  lecture_title: string;
+  student_count: number;
+  avg_score: number;
   created_at: string;
-  participant_count: number;
-  correct_rate: number;
 }
 
 export interface InstructorDashboardResponse {
+  instructor_id: string;
   total_sessions: number;
   avg_participation_rate: number;
   avg_correct_rate: number;
-  quality_score: number;
+  quality_score: InstructorQualityScore;
   recent_sessions: InstructorRecentSession[];
 }
 
 export interface AdminPlatformStats {
-  total_users: number;
-  total_sessions: number;
-  total_answers: number;
-  avg_correct_rate: number;
+  active_sessions: number;
+  today_sessions: number;
+  avg_participation: number;
 }
 
 export interface AdminInstructorSummary {
   instructor_id: string;
   name: string;
-  email: string;
   total_sessions: number;
+  avg_participation_rate: number;
   quality_score: number;
 }
 
 export interface AdminAtRiskStudent {
-  user_id: string;
+  student_id: string;
   name: string;
-  email: string;
-  overall_correct_rate: number;
-  total_answers: number;
+  risk_level: "high" | "medium" | "low";
+  risk_score: number;
+  risk_factors: string[];
 }
 
 export interface AdminDashboardResponse {

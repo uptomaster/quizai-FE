@@ -53,6 +53,7 @@ export default function InstructorLecturesPage() {
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
   const uploadLectureMutation = useUploadLectureMutation();
   const generateQuizMutation = useGenerateQuizMutation();
+  const [showCourseExplorer, setShowCourseExplorer] = useState(false);
 
   const handleUploadLecture = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,7 +72,7 @@ export default function InstructorLecturesPage() {
         title,
       });
       setUploadedLecture(lecture);
-      setLectureId(lecture.id);
+      setLectureId(lecture.lecture_id);
       toast.success("PDF 업로드가 완료되었습니다.");
     } catch {
       // api-client 인터셉터에서 토스트를 처리합니다.
@@ -104,7 +105,7 @@ export default function InstructorLecturesPage() {
         week: "화/목 10:00",
         students: 42,
         status: "진행 중",
-        lectureId: uploadedLecture?.id ?? "db-101",
+        lectureId: uploadedLecture?.lecture_id ?? "db-101",
         summary: "ERD 설계, 정규화, SQL 기본 쿼리를 다루는 코스",
         category: "CS Core",
         totalLectures: 16,
@@ -151,7 +152,7 @@ export default function InstructorLecturesPage() {
         updatedAt: "2026-04-04",
       },
     ],
-    [uploadedLecture?.id],
+    [uploadedLecture?.lecture_id],
   );
 
   const courseStats = useMemo(() => {
@@ -206,19 +207,54 @@ export default function InstructorLecturesPage() {
     <section className="space-y-6">
       <PageHero
         title="강의 운영 스튜디오"
-        description="개설 과목 관리, PDF 업로드, AI 퀴즈 생성을 하나의 워크플로우로 운영하세요."
+        description="헷갈리지 않도록 핵심 작업 3단계(업로드 → 퀴즈 생성 → 세션 시작)만 먼저 진행하세요."
         className="from-cyan-500/25 via-fuchsia-500/25 to-indigo-500/25"
         actions={
           <>
-            <Button type="button" variant="secondary">
-              새 과목 개설
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => window.location.assign("/instructor/sessions")}
+            >
+              세션 시작하러 가기
             </Button>
-            <Button type="button" variant="outline">
-              커리큘럼 템플릿
+            <Button type="button" variant="outline" onClick={() => setShowCourseExplorer((prev) => !prev)}>
+              {showCourseExplorer ? "과목 탐색 접기" : "과목 탐색 열기"}
             </Button>
           </>
         }
       />
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader>
+          <CardTitle>빠른 진행 순서</CardTitle>
+          <CardDescription>처음이면 아래 순서대로만 진행하면 됩니다.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border bg-background p-3 text-sm">
+            <p className="font-semibold">1) PDF 업로드</p>
+            <p className="text-muted-foreground">강의 자료를 올려 `lecture_id`를 발급받습니다.</p>
+            <p className="mt-2 text-xs font-medium">{uploadedLecture ? "완료" : "대기 중"}</p>
+          </div>
+          <div className="rounded-lg border bg-background p-3 text-sm">
+            <p className="font-semibold">2) AI 퀴즈 생성</p>
+            <p className="text-muted-foreground">발급된 `lecture_id`로 문제 세트를 생성합니다.</p>
+            <p className="mt-2 text-xs font-medium">{quizSetId ? "완료" : "대기 중"}</p>
+          </div>
+          <div className="rounded-lg border bg-background p-3 text-sm">
+            <p className="font-semibold">3) 세션 시작</p>
+            <p className="text-muted-foreground">`quiz_set_id`로 실시간 수업 세션을 시작합니다.</p>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-2"
+              disabled={!quizSetId}
+              onClick={() => window.location.assign("/instructor/sessions")}
+            >
+              세션 페이지 이동
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       <HelperTip
         title="빠른 시작 가이드"
         steps={[
@@ -250,6 +286,7 @@ export default function InstructorLecturesPage() {
           <CardContent className="text-3xl font-bold">{courseStats.averageCompletion}%</CardContent>
         </Card>
       </div>
+      {showCourseExplorer ? (
       <Card>
         <CardHeader>
           <CardTitle>개설 과목</CardTitle>
@@ -382,6 +419,7 @@ export default function InstructorLecturesPage() {
           ) : null}
         </CardContent>
       </Card>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="bg-gradient-to-br from-indigo-500/10 to-transparent">
@@ -440,7 +478,7 @@ export default function InstructorLecturesPage() {
           {uploadedLecture ? (
             <p className="mt-3 text-sm text-muted-foreground">
               업로드 완료 lecture_id:{" "}
-              <span className="font-medium text-foreground">{uploadedLecture.id}</span>
+              <span className="font-medium text-foreground">{uploadedLecture.lecture_id}</span>
             </p>
           ) : null}
           {quizSetId ? (
@@ -477,10 +515,15 @@ export default function InstructorLecturesPage() {
               onChange={(event) => setCount(event.target.value)}
               required
             />
-            <Button type="submit" disabled={generateQuizMutation.isPending}>
+            <Button type="submit" disabled={generateQuizMutation.isPending || !lectureId.trim()}>
               {generateQuizMutation.isPending ? "생성 중..." : "퀴즈 생성"}
             </Button>
           </form>
+          {!lectureId ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              먼저 PDF 업로드를 완료하거나 `lecture_id`를 입력해주세요.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

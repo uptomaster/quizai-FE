@@ -34,14 +34,14 @@ export default function InstructorDashboardPage() {
         <StatTile
           title="평균 참여율"
           description="학생 참여 평균"
-          value={`${Math.round((data?.avg_participation_rate ?? 0) * 100)}%`}
+          value={`${Math.round(data?.avg_participation_rate ?? 0)}%`}
           delta="실시간"
         />
         <StatTile
           title="평균 정답률"
           description="세션 문제 정답 정확도"
-          value={`${Math.round((data?.avg_correct_rate ?? 0) * 100)}%`}
-          delta={`${Math.round((data?.quality_score ?? 0) * 100)} 품질점수`}
+          value={`${Math.round(data?.avg_correct_rate ?? 0)}%`}
+          delta={`${Math.round(data?.quality_score.total ?? 0)} 품질점수`}
         />
       </div>
     </section>

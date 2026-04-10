@@ -39,7 +39,7 @@ export const createLocalSession = (quizSetId: string, timeLimit: number): Sessio
     session_id: `local-session-${crypto.randomUUID()}`,
     session_code: joinCode,
     ws_url: `${
-      process.env.NEXT_PUBLIC_WS_URL?.trim() || "wss://quizai-be.onrender.com"
+      process.env.NEXT_PUBLIC_WS_URL?.trim() || "wss://quizai-api.onrender.com"
     }/sessions/${quizSetId}/join?time_limit=${timeLimit}`,
     status: "active",
   };

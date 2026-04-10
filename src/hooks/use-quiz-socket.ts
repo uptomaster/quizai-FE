@@ -4,31 +4,36 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type QuizSocketEventType =
+  | "session_joined"
   | "quiz_started"
-  | "answer_submitted"
+  | "answer_update"
+  | "answer_revealed"
   | "session_ended"
-  | "connected"
   | "error";
 
 interface QuizSocketEventMap {
-  quiz_started: {
-    sessionId: string;
-    startedAt: string;
-    questionId: string;
+  session_joined: {
+    participant_count: number;
+    nickname: string;
   };
-  answer_submitted: {
-    sessionId: string;
-    studentId: string;
-    questionId: string;
-    isCorrect?: boolean;
+  quiz_started: {
+    quiz_id: string;
+    question: string;
+    options: string[];
+    time_limit: number;
+  };
+  answer_update: {
+    total: number;
+    answered: number;
+    rate: number;
+    distribution: number[];
+  };
+  answer_revealed: {
+    correct_option: number;
+    explanation?: string | null;
   };
   session_ended: {
-    sessionId: string;
-    endedAt: string;
-  };
-  connected: {
-    sessionId: string;
-    participantId: string;
+    session_id: string;
   };
   error: {
     message: string;
@@ -44,35 +49,53 @@ interface UseQuizSocketOptions {
   directWsUrl?: string;
   enabled?: boolean;
   wsBaseUrl?: string;
+  nickname?: string;
+  token?: string;
   onQuizStarted?: (payload: QuizSocketEventMap["quiz_started"]) => void;
-  onAnswerSubmitted?: (payload: QuizSocketEventMap["answer_submitted"]) => void;
+  onAnswerUpdate?: (payload: QuizSocketEventMap["answer_update"]) => void;
   onSessionEnded?: (payload: QuizSocketEventMap["session_ended"]) => void;
 }
 
 interface UseQuizSocketResult {
   isConnected: boolean;
   lastEvent: QuizSocketEvent | null;
-  sendAnswer: (questionId: string, answer: string) => void;
+  sendAnswer: (quizId: string, selectedOption: number) => void;
   disconnect: () => void;
 }
 
 const DEFAULT_WS_BASE_URL =
-  process.env.NEXT_PUBLIC_WS_URL?.trim() || "wss://quizai-be.onrender.com";
+  process.env.NEXT_PUBLIC_WS_URL?.trim() || "wss://quizai-api.onrender.com";
 
 export function useQuizSocket({
   sessionId,
   directWsUrl,
   enabled = true,
   wsBaseUrl = DEFAULT_WS_BASE_URL,
+  nickname,
+  token,
   onQuizStarted,
-  onAnswerSubmitted,
+  onAnswerUpdate,
   onSessionEnded,
 }: UseQuizSocketOptions): UseQuizSocketResult {
   const socketRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<QuizSocketEvent | null>(null);
 
-  const url = useMemo(() => directWsUrl || `${wsBaseUrl}/sessions/${sessionId}/join`, [directWsUrl, sessionId, wsBaseUrl]);
+  const url = useMemo(() => {
+    if (directWsUrl) {
+      return directWsUrl;
+    }
+
+    const params = new URLSearchParams();
+    if (nickname) {
+      params.set("nickname", nickname);
+    }
+    if (token) {
+      params.set("token", token);
+    }
+    const query = params.toString();
+    return `${wsBaseUrl}/sessions/${sessionId}/join${query ? `?${query}` : ""}`;
+  }, [directWsUrl, nickname, sessionId, token, wsBaseUrl]);
 
   const disconnect = useCallback(() => {
     socketRef.current?.close();
@@ -102,8 +125,8 @@ export function useQuizSocket({
           onQuizStarted?.(data.payload);
         }
 
-        if (data.type === "answer_submitted") {
-          onAnswerSubmitted?.(data.payload);
+        if (data.type === "answer_update") {
+          onAnswerUpdate?.(data.payload);
         }
 
         if (data.type === "session_ended") {
@@ -130,14 +153,14 @@ export function useQuizSocket({
     };
   }, [
     enabled,
-    onAnswerSubmitted,
+    onAnswerUpdate,
     onQuizStarted,
     onSessionEnded,
     sessionId,
     url,
   ]);
 
-  const sendAnswer = useCallback((questionId: string, answer: string) => {
+  const sendAnswer = useCallback((quizId: string, selectedOption: number) => {
     const socket = socketRef.current;
 
     if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -148,10 +171,8 @@ export function useQuizSocket({
     socket.send(
       JSON.stringify({
         type: "submit_answer",
-        payload: {
-          questionId,
-          answer,
-        },
+        quiz_id: quizId,
+        selected_option: selectedOption,
       }),
     );
   }, []);
