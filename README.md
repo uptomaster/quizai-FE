@@ -41,6 +41,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Git 연동(권장)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. [Vercel Dashboard](https://vercel.com/new) → **Add New…** → **Project** → GitHub 저장소 선택 (`quizai-FE` 등).
+2. **Framework Preset**: Next.js (자동 감지).
+3. **Root Directory**: 저장소 루트(기본값).
+4. **Environment Variables** (선택 — 비워도 기본 백엔드로 동작):
+   - `.env.example` 참고. 로컬과 동일하게 쓰려면 `NEXT_PUBLIC_API_URL=/api/proxy` 권장.
+5. **Deploy**. 이후 `main` 푸시마다 프로덕션 배포가 갱신됩니다.
+
+`vercel.json`에서 서버리스/API 라우트 리전을 **서울(`icn1`)** 으로 두었습니다. 다른 리전이 필요하면 해당 파일을 수정하세요.
+
+### CLI
+
+```bash
+npx vercel login
+npx vercel --prod
+```
+
+인증 후 프로젝트를 연결(link)하면 동일하게 프로덕션 배포됩니다.
+
+More: [Next.js on Vercel](https://nextjs.org/docs/app/building-your-application/deploying).
