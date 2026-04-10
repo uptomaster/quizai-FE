@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHero } from "@/components/common/page-hero";
+import { useAdminDashboardQuery } from "@/hooks/api/use-admin-dashboard-query";
 import { cn } from "@/lib/utils";
 
 type UserRole = "student" | "instructor" | "admin";
@@ -13,45 +14,62 @@ type UserRole = "student" | "instructor" | "admin";
 interface UserRow {
   id: string;
   name: string;
-  email: string;
   role: UserRole;
   status: "active" | "suspended";
+  detail: string;
 }
-
-const MOCK_USERS: UserRow[] = [
-  { id: "u-101", name: "김수강", email: "student1@quizai.com", role: "student", status: "active" },
-  { id: "u-102", name: "박교강", email: "teacher1@quizai.com", role: "instructor", status: "active" },
-  { id: "u-103", name: "최운영", email: "admin1@quizai.com", role: "admin", status: "active" },
-  { id: "u-104", name: "이학습", email: "student2@quizai.com", role: "student", status: "suspended" },
-];
 
 export default function AdminUsersPage() {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
+  const dashboardQuery = useAdminDashboardQuery();
+
+  const users = useMemo(() => {
+    const instructorRows: UserRow[] = (dashboardQuery.data?.instructors ?? []).map(
+      (instructor) => ({
+        id: instructor.instructor_id,
+        name: instructor.name,
+        role: "instructor",
+        status: "active",
+        detail: `세션 ${instructor.total_sessions}회 / 참여율 ${Math.round(instructor.avg_participation_rate)}%`,
+      }),
+    );
+
+    const atRiskStudentRows: UserRow[] = (dashboardQuery.data?.at_risk_students ?? []).map(
+      (student) => ({
+        id: student.student_id,
+        name: student.name,
+        role: "student",
+        status: student.risk_level === "high" ? "suspended" : "active",
+        detail: `리스크 ${student.risk_level} (${Math.round(student.risk_score)})`,
+      }),
+    );
+
+    return [...instructorRows, ...atRiskStudentRows];
+  }, [dashboardQuery.data]);
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return MOCK_USERS.filter((user) => {
+    return users.filter((user) => {
       const matchesRole = roleFilter === "all" ? true : user.role === roleFilter;
       const matchesQuery =
         q.length === 0
           ? true
-          : `${user.name} ${user.email} ${user.id}`.toLowerCase().includes(q);
+          : `${user.name} ${user.id} ${user.detail}`.toLowerCase().includes(q);
       return matchesRole && matchesQuery;
     });
-  }, [query, roleFilter]);
+  }, [query, roleFilter, users]);
 
   return (
     <section className="space-y-6">
       <PageHero
         title="사용자 권한 관리"
-        description="수강생/교강사/운영자 권한을 관리하고, 계정 상태를 통합 모니터링합니다."
-        className="from-fuchsia-500/15 via-pink-500/15 to-rose-500/15"
+        description="백엔드 DB 기반 사용자/리스크 정보를 조회합니다."
       />
       <Card>
         <CardHeader>
-          <CardTitle>사용자 디렉토리</CardTitle>
-          <CardDescription>검색 및 역할 필터로 대상 계정을 빠르게 찾을 수 있습니다.</CardDescription>
+          <CardTitle>실시간 사용자 디렉토리</CardTitle>
+          <CardDescription>운영 데이터에서 수강생 리스크/교강사 현황을 확인합니다.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 md:flex-row">
@@ -70,9 +88,6 @@ export default function AdminUsersPage() {
               <Button type="button" size="sm" variant={roleFilter === "instructor" ? "default" : "outline"} onClick={() => setRoleFilter("instructor")}>
                 교강사
               </Button>
-              <Button type="button" size="sm" variant={roleFilter === "admin" ? "default" : "outline"} onClick={() => setRoleFilter("admin")}>
-                운영자
-              </Button>
             </div>
           </div>
 
@@ -82,7 +97,8 @@ export default function AdminUsersPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email} | {user.id}</p>
+                    <p className="text-xs text-muted-foreground">{user.id}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{user.detail}</p>
                   </div>
                   <div className="flex gap-2">
                     <span className="rounded-full bg-muted px-2 py-1 text-xs">{user.role}</span>
@@ -100,6 +116,11 @@ export default function AdminUsersPage() {
                 </div>
               </article>
             ))}
+            {filteredUsers.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                조회된 사용자 데이터가 없습니다.
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>

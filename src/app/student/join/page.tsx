@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { useJoinSessionMutation } from "@/hooks/api/use-join-session-mutation";
 import type { Session } from "@/types/api";
 
 export default function StudentJoinPage() {
+  const router = useRouter();
   const [joinCode, setJoinCode] = useState("");
   const [joinedSession, setJoinedSession] = useState<Session | null>(null);
   const joinSessionMutation = useJoinSessionMutation();
@@ -35,37 +37,37 @@ export default function StudentJoinPage() {
   return (
     <section className="space-y-6">
       <PageHero
-        title="세션 참여"
-        description="교강사가 공유한 6자리 참여코드를 입력하세요."
-        className="from-pink-500/10 via-fuchsia-500/10 to-blue-500/10"
+        title="퀴즈 대기실"
+        description="6자리 코드를 입력하면 바로 입장합니다. 토스 송금처럼 빠르고 단순하게."
       />
-      <HelperTip
-        title="입장 팁"
-        steps={[
-          "참여코드는 대소문자 구분 없이 입력 가능합니다.",
-          "입장 성공 시 세션 ID가 즉시 표시됩니다.",
-          "코드가 틀리면 다시 확인 후 재입장하세요.",
-        ]}
-      />
-      <Card>
+      <Card className="mx-auto max-w-xl">
         <CardHeader>
-          <CardTitle>참여 코드 입력</CardTitle>
-          <CardDescription>교강사가 공유한 코드로 세션에 접속합니다.</CardDescription>
+          <CardTitle>참여코드 입력</CardTitle>
+          <CardDescription>코드만 입력하면 자동으로 세션 검증이 진행됩니다.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleJoin} className="flex flex-col gap-3 md:flex-row">
+          <form onSubmit={handleJoin} className="space-y-3">
             <Input
               value={joinCode}
               onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
               placeholder="참여코드 6자리"
               required
+              className="h-12 text-center text-xl tracking-[0.35em]"
             />
-            <Button type="submit" disabled={joinSessionMutation.isPending}>
+            <Button type="submit" disabled={joinSessionMutation.isPending} className="h-11 w-full">
               {joinSessionMutation.isPending ? "참여 중..." : "참여하기"}
             </Button>
           </form>
         </CardContent>
       </Card>
+      <HelperTip
+        title="플레이 시작 전"
+        steps={[
+          "문항은 한 화면에 하나씩 노출됩니다.",
+          "선택지 클릭 시 즉시 피드백이 제공됩니다.",
+          "종료 후 개인 리포트를 확인할 수 있습니다.",
+        ]}
+      />
       {joinedSession && (
         <Card>
           <CardHeader>
@@ -79,6 +81,13 @@ export default function StudentJoinPage() {
             <p>
               참여코드: <span className="font-medium text-primary">{joinedSession.session_code}</span>
             </p>
+            <Button
+              type="button"
+              className="mt-2"
+              onClick={() => router.push(`/student/play?sessionId=${joinedSession.session_id}`)}
+            >
+              퀴즈 플레이 시작
+            </Button>
           </CardContent>
         </Card>
       )}

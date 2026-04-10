@@ -75,9 +75,8 @@ export default function InstructorSessionsPage() {
   return (
     <section className="space-y-4">
       <PageHero
-        title="세션 진행/모니터링"
-        description="세션 생성 후 참여코드를 복사해 수강생에게 전달하세요."
-        className="from-cyan-500/10 via-blue-500/10 to-violet-500/10"
+        title="실시간 분석 (Insight)"
+        description="세션을 시작하면 정답률 분포와 응답 속도를 실시간으로 확인할 수 있습니다."
       />
       <HelperTip
         title="세션 운영 순서"
@@ -87,7 +86,7 @@ export default function InstructorSessionsPage() {
           "하단 실시간 채널에서 응답 이벤트를 모니터링합니다.",
         ]}
       />
-      <Card className="border-primary/30 bg-primary/5">
+      <Card className="border-blue-100 bg-blue-50/50">
         <CardContent className="grid gap-3 p-4 md:grid-cols-3 text-sm">
           <div className="rounded-lg border bg-background p-3">
             <p className="font-semibold">1) 세션 생성</p>
@@ -101,6 +100,20 @@ export default function InstructorSessionsPage() {
             <p className="font-semibold">3) 실시간 모니터링</p>
             <p className="text-muted-foreground">연결 상태/이벤트 확인</p>
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>AI 코멘트</CardTitle>
+          <CardDescription>실시간 이벤트를 기반으로 자동 코멘트를 제공합니다.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p className="rounded-lg border bg-blue-50 p-3">
+            3번 문항의 응답 분산이 큽니다. 정답 공개 전 힌트 제공을 권장합니다.
+          </p>
+          <p className="rounded-lg border p-3">
+            평균 응답 시간이 길어지고 있습니다. 문제 난이도를 점검하세요.
+          </p>
         </CardContent>
       </Card>
       <Card>

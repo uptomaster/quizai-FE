@@ -1,107 +1,119 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHero } from "@/components/common/page-hero";
+import { useSessionResultQuery } from "@/hooks/api/use-session-result-query";
 import { cn } from "@/lib/utils";
 
-type SessionResult = {
-  id: string;
-  date: string;
-  subject: string;
-  score: number;
-  accuracy: number;
-  status: "완료" | "복습 필요";
-};
-
-const MOCK_SESSIONS: SessionResult[] = [
-  { id: "s-101", date: "2026-04-07", subject: "데이터베이스 기초", score: 82, accuracy: 78, status: "복습 필요" },
-  { id: "s-102", date: "2026-04-06", subject: "웹 프론트엔드 실습", score: 91, accuracy: 88, status: "완료" },
-  { id: "s-103", date: "2026-04-04", subject: "AI 기반 서비스 기획", score: 87, accuracy: 84, status: "완료" },
-];
-
 export default function StudentSessionsPage() {
-  const [search, setSearch] = useState("");
-  const [onlyReview, setOnlyReview] = useState(false);
+  const [sessionIdInput, setSessionIdInput] = useState("");
+  const [sessionId, setSessionId] = useState("");
+  const resultQuery = useSessionResultQuery(sessionId);
+  const result = resultQuery.data;
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return MOCK_SESSIONS.filter((session) => {
-      const matchesSearch =
-        q.length === 0
-          ? true
-          : `${session.subject} ${session.id}`.toLowerCase().includes(q);
-      const matchesReview = onlyReview ? session.status === "복습 필요" : true;
-      return matchesSearch && matchesReview;
-    });
-  }, [onlyReview, search]);
+  const sortedStudents = useMemo(() => {
+    if (!result) {
+      return [];
+    }
+
+    return [...result.students].sort((a, b) => b.score - a.score);
+  }, [result]);
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!sessionIdInput.trim()) {
+      toast.error("세션 ID를 입력해주세요.");
+      return;
+    }
+    setSessionId(sessionIdInput.trim());
+  };
 
   return (
     <section className="space-y-6">
       <PageHero
-        title="응답 기록"
-        description="세션별 점수와 정답률을 확인하고 필요한 항목을 빠르게 복습하세요."
-        className="from-emerald-500/15 via-cyan-500/15 to-indigo-500/15"
+        title="세션 결과 조회"
+        description="실제 DB에 저장된 세션 결과를 세션 ID 기준으로 조회합니다."
       />
       <Card>
         <CardHeader>
-          <CardTitle>최근 참여 세션</CardTitle>
-          <CardDescription>검색/필터로 학습 데이터를 관리할 수 있습니다.</CardDescription>
+          <CardTitle>결과 조회</CardTitle>
+          <CardDescription>교강사가 공유한 세션 ID를 입력해 결과를 확인하세요.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2 md:flex-row">
+          <form onSubmit={handleSearch} className="flex flex-col gap-2 md:flex-row">
             <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="과목명 또는 세션 ID 검색"
+              value={sessionIdInput}
+              onChange={(event) => setSessionIdInput(event.target.value)}
+              placeholder="session_id 입력"
             />
-            <Button
-              type="button"
-              variant={onlyReview ? "default" : "outline"}
-              onClick={() => setOnlyReview((prev) => !prev)}
-            >
-              복습 필요만 보기
+            <Button type="submit" disabled={resultQuery.isFetching}>
+              {resultQuery.isFetching ? "조회 중..." : "조회"}
             </Button>
-          </div>
+          </form>
 
-          <div className="grid gap-3">
-            {filtered.map((session) => (
-              <article
-                key={session.id}
-                className="rounded-xl border bg-gradient-to-r from-white/80 to-white/30 p-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{session.subject}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {session.date} | {session.id}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-1 text-xs font-medium",
-                      session.status === "완료"
-                        ? "bg-emerald-500/15 text-emerald-700"
-                        : "bg-amber-500/15 text-amber-700",
-                    )}
-                  >
-                    {session.status}
-                  </span>
-                </div>
-                <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
-                  <p>
-                    점수: <span className="font-semibold">{session.score}점</span>
-                  </p>
-                  <p>
-                    정답률: <span className="font-semibold">{session.accuracy}%</span>
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
+          {result ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-3">
+                <Card className="border-slate-200">
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground">평균 점수</p>
+                    <p className="text-2xl font-semibold">{Math.round(result.avg_score)}점</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground">총 수강생</p>
+                    <p className="text-2xl font-semibold">{result.total_students}명</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="pt-6">
+                    <p className="text-xs text-muted-foreground">취약 개념 수</p>
+                    <p className="text-2xl font-semibold">{result.weak_concepts.length}개</p>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="rounded-xl border bg-white p-4">
+                <p className="text-sm font-semibold">AI 오답 요약</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  오답의 대부분이 `{result.weak_concepts.slice(0, 2).join(", ")}` 개념에서 발생했어요.
+                  다음 세션 전 5분 복습을 추천합니다.
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                {sortedStudents.map((student) => (
+                  <article key={student.student_id} className="rounded-xl border bg-white p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">{student.nickname}</p>
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-1 text-xs font-medium",
+                          student.grade === "excellent"
+                            ? "bg-blue-50 text-blue-700"
+                            : student.grade === "needs_practice"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-rose-50 text-rose-700",
+                        )}
+                      >
+                        {student.grade}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">점수 {student.score}점</p>
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              세션 ID를 입력하면 실제 결과 데이터를 가져옵니다.
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>

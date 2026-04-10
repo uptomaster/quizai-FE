@@ -10,34 +10,33 @@ export default function StudentDashboardPage() {
   return (
     <section className="space-y-6">
       <PageHero
-        title="수강생 대시보드"
-        description="참여코드로 세션에 입장하고, 결과를 바로 확인하세요."
-        className="from-violet-500/10 via-pink-500/10 to-amber-500/10"
+        title="오늘 학습 리포트"
+        description="오늘 강의의 85%를 이해했어요! 오답 개념만 빠르게 복습하면 완벽합니다."
         actions={
           <Button onClick={() => window.location.assign("/student/join")}>세션 참여하기</Button>
         }
       />
       <div className="grid gap-4 md:grid-cols-3">
-        <StatTile title="참여 세션 수" description="누적 퀴즈 세션 참여 횟수" value="0" delta="+0" />
-        <StatTile title="평균 점수" description="최근 응답 결과 기반" value="0점" delta="+0점" />
-        <StatTile title="정답률" description="전체 문제 대비" value="0%" delta="+0.0%" />
+        <StatTile title="이해도 점수" description="오늘 학습 기준" value="85%" delta="+7%" />
+        <StatTile title="평균 점수" description="최근 3회 기준" value="78점" delta="+4점" />
+        <StatTile title="정답률" description="전체 문제 대비" value="82%" delta="+6.5%" />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="bg-gradient-to-br from-violet-500/10 to-transparent">
+        <Card className="bg-white">
           <CardHeader>
-            <CardTitle>오늘의 추천 학습</CardTitle>
-            <CardDescription>학습 패턴을 기준으로 추천된 복습 경로입니다.</CardDescription>
+            <CardTitle>오답 노트 (AI 요약)</CardTitle>
+            <CardDescription>오늘 놓친 핵심 개념을 AI가 정리했습니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>• 데이터베이스 정규화 개념 복습</p>
-            <p>• 최근 오답 5문항 다시 풀기</p>
-            <p>• AI 생성 심화 문제 10문항 도전</p>
+            <p>• 과적합: 학습 데이터에 지나치게 맞춰 일반화 성능이 낮아진 상태</p>
+            <p>• 정규화: 모델 복잡도를 제한해 과적합을 줄이는 기법</p>
+            <p>• 실전 팁: 오답 문항의 정답 근거를 한 줄로 다시 써보기</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-amber-500/10 to-transparent">
+        <Card className="bg-white">
           <CardHeader>
-            <CardTitle>성취 배지 진행률</CardTitle>
-            <CardDescription>퀴즈 참여와 정답률로 획득 가능한 배지</CardDescription>
+            <CardTitle>플레이 성장 트랙</CardTitle>
+            <CardDescription>게임처럼 진행되는 학습 성장 지표</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>

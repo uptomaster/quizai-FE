@@ -9,12 +9,12 @@ interface StatTileProps {
 
 export function StatTile({ title, description, value, delta }: StatTileProps) {
   return (
-    <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <Card className="border-slate-200 bg-white transition-all hover:-translate-y-0.5 hover:shadow-md">
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle>{title}</CardTitle>
           {delta ? (
-            <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-700">
+            <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
               {delta}
             </span>
           ) : null}
