@@ -645,6 +645,81 @@ feat: 전체 구현 완료 및 Render 배포 설정
 fix:python version
 
 그리고 이런식으로 백엔드에서 커밋했으니 우리도 이런 규칙으로 커밋하도록해
+27. Access to XMLHttpRequest at 'https://quizai-api.onrender.com/dashboard/instructor' from origin 'http://localhost:3000' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+quizai-api.onrender.com/dashboard/instructor:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+dashboard:1 Access to XMLHttpRequest at 'https://quizai-api.onrender.com/dashboard/instructor' from origin 'http://localhost:3000' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+quizai-api.onrender.com/dashboard/instructor:1  Failed to load resource: net::ERR_FAILED
+
+그리고 수강생 교강사 운영진 다 테스트해야하는데 지금 로그인하면 하나밖에 못하니까 로그아웃도 만들어놓고 전반적으로 토스 UI로 구성해
+28. 백엔드 담장자가 아직 cors허용을 안했다는걸 어떻게알아? 했을수도있잖아
+29. 응
+30. 그리고 더미 데이터말고 실제 데이터베이스와 연결해야해. 일단 백엔드담당자가 SUPABASE와 연동했다했어. 그리고 내가 분명 UI UX 완전히 갈아엎으라고 했잖아. 지금의 상태에서 완전한 대격변을해
+31. Access to XMLHttpRequest at 'https://quizai-api.onrender.com/sessions/join' from origin 'http://localhost:3000' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+quizai-api.onrender.com/sessions/join:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+login:1 Access to XMLHttpRequest at 'https://quizai-api.onrender.com/auth/login' from origin 'http://localhost:3000' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+quizai-api.onrender.com/auth/login:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+login:1 Access to XMLHttpRequest at 'https://quizai-api.onrender.com/auth/login' from origin 'http://localhost:3000' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+quizai-api.onrender.com/auth/login:1  Failed to load resource: net::ERR_FAILED
+
+그리고 갑자기 로그인도 안돼. 
+32. 화면 구성 제안: "Simple & Insightful"
+1. [강사 전용] 퀴즈 생성 및 대시보드
+강사 화면의 핵심은 **'복잡한 과정을 AI가 대신해준다'**는 느낌을 주는 것입니다.
+
+메인 대시보드 (Home):
+
+현재 진행 중인 강의 목록과 평균 이해도 그래프.
+
+퀴즈 생성 (AI Magic):
+
+파일 업로드 영역: 강의록(PDF, TXT)을 드래그 앤 드롭하는 심플한 인터페이스.
+
+생성 대기 UI: Claude API가 퀴즈를 생성하는 동안 'AI가 강의 내용을 분석 중입니다...'라는 애니메이션과 함께 핵심 키워드 추출 화면 노출.
+
+퀴즈 리뷰: 생성된 퀴즈를 카드로 보여주고, 즉석에서 수정/삭제 가능한 리스트.
+
+실시간 분석 (Insight):
+
+정답률 분포: "3번 문항의 정답률이 낮습니다. 보충 설명이 필요해 보입니다." 같은 AI 코멘트 카드.
+
+학생별 스코어보드: 정량화된 데이터 기반의 실시간 순위 및 성취도 지표.
+
+2. [수강생 전용] 퀴즈 참여 및 결과
+학생 화면은 **'학습이 아니라 게임 같다'**는 몰입감이 중요합니다.
+
+퀴즈 대기실: 6자리 코드 입력 또는 강의 선택 후 대기. (토스 송금 화면처럼 단순하게)
+
+실시간 퀴즈 (Play):
+
+한 화면에 한 문항씩만 노출.
+
+선택지 클릭 시 즉각적인 인터랙션 (햅틱 반응이나 시각적 피드백).
+
+개별 리포트:
+
+이해도 점수: "오늘 강의의 85%를 이해했어요!" 같은 칭찬 문구.
+
+오답 노트: AI가 요약해준 '내가 놓친 핵심 개념' 정리 섹션.
+
+3. [운영자/전체 공통] UI 시스템 (Toss Style)
+현재 적용하신 app-shell.tsx 톤에 맞춘 세부 가이드입니다.
+
+Typography: Pretendard 또는 Toss Product Sans 계열의 굵고 시원한 폰트 사용.
+
+Color System:
+
+Primary: #0064FF (Toss Blue) - 주요 버튼, 진행 바.
+
+Background: #F2F4F6 (Light Gray) - 전체 배경.
+
+Card: #FFFFFF (White) - 개별 콘텐츠 단위.
+
+Component:
+
+Page Hero: 화면 상단에 "안녕하세요, 남혁님. 오늘 퀴즈 참여율은 92%입니다." 같은 개인화 메시지 배치.
+
+Stat Tile: 숫자 데이터는 무조건 크게, 변화량은 작은 배지로 표시.
+33. 응
 
 ## Update Rule
 

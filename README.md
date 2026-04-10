@@ -4,6 +4,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 - Commit message convention: `COMMIT_CONVENTION.md`
 
+## API Proxy (CORS workaround)
+
+- Local development uses same-origin proxy at `/api/proxy/*`
+- Target backend URL is configured by `API_SERVER_URL` (default: `https://quizai-api.onrender.com`)
+- If `NEXT_PUBLIC_API_URL` is unset, frontend client uses `/api/proxy`
+
 ## Getting Started
 
 First, run the development server:
