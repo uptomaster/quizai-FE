@@ -5,18 +5,16 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 
-import { AuthRolePicker } from "@/components/auth/auth-role-picker";
 import { SiteLogo } from "@/components/common/site-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useLoginMutation } from "@/hooks/api/use-login-mutation";
 import { getRoleHomePath, saveAuthSession } from "@/lib/auth-storage";
-import type { AuthRequest, UserRole } from "@/types/api";
+import type { AuthRequest } from "@/types/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [role, setRole] = useState<UserRole>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const loginMutation = useLoginMutation();
@@ -25,13 +23,12 @@ export default function LoginPage() {
     event.preventDefault();
 
     try {
-      const payload: AuthRequest = { email, password, role };
+      const payload: AuthRequest = { email, password };
       const data = await loginMutation.mutateAsync(payload);
-      const user = { ...data.user, role };
-      saveAuthSession(user, data.tokens);
+      saveAuthSession(data.user, data.tokens);
 
       toast.success("로그인되었습니다.");
-      router.push(getRoleHomePath(role));
+      router.push(getRoleHomePath(data.user.role));
     } catch {
       // apiRequest에서 토스트를 처리합니다.
     }
@@ -56,13 +53,12 @@ export default function LoginPage() {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>QuizAI 로그인</CardTitle>
-          <CardDescription>역할을 고른 뒤 이메일로 로그인하세요.</CardDescription>
+          <CardDescription>가입한 이메일·비밀번호로 로그인합니다. 메뉴(역할)는 계정에 저장된 권한을 따릅니다.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            <AuthRolePicker value={role} onChange={setRole} disabled={loginMutation.isPending} />
             <div className="space-y-2">
-              <p className="text-sm font-medium">2. 계정 정보</p>
+              <p className="text-sm font-medium">계정 정보</p>
               <Input
                 type="email"
                 value={email}
@@ -91,7 +87,7 @@ export default function LoginPage() {
             </Link>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            선택한 역할로 메뉴와 화면이 열립니다. 실제 API 권한은 서버·토큰과 일치해야 모든 기능이 동작합니다.
+            로그인 후 이동 경로는 서버가 내려준 역할(student / instructor / admin)에 맞춰집니다.
           </p>
         </CardContent>
       </Card>

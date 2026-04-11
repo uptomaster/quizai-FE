@@ -40,10 +40,9 @@ export default function RegisterPage() {
       };
 
       const data = await registerMutation.mutateAsync(payload);
-      const user = { ...data.user, role };
-      saveAuthSession(user, data.tokens);
+      saveAuthSession(data.user, data.tokens);
       toast.success("회원가입이 완료되었습니다.");
-      router.push(getRoleHomePath(role));
+      router.push(getRoleHomePath(data.user.role));
     } catch {
       // apiRequest에서 토스트를 처리합니다.
     }

@@ -340,6 +340,41 @@ const proxyRequest = async (
     return buildMockResponse(request, path);
   }
 
+  /** Render 등 업스트림에 POST /sessions/join 이 없어 404일 때 입장 API만 목으로 이어줌. 배포 후 `PROXY_JOIN_ON_UPSTREAM_404=false` 권장. */
+  const routeJoined = path.join("/");
+  if (
+    response.status === 404 &&
+    process.env.PROXY_JOIN_ON_UPSTREAM_404 !== "false" &&
+    request.method === "POST" &&
+    routeJoined === "sessions/join"
+  ) {
+    await response.arrayBuffer();
+    let echoedCode = "A7K3B9";
+    try {
+      if (requestBody && requestBody.byteLength > 0) {
+        const j = JSON.parse(Buffer.from(requestBody).toString("utf8")) as { session_code?: string };
+        const c = j.session_code?.trim();
+        if (c) {
+          echoedCode = c;
+        }
+      }
+    } catch {
+      // ignore body parse
+    }
+    const sessionId = `sess_${crypto.randomUUID().slice(0, 8)}`;
+    const res = NextResponse.json(
+      {
+        session_id: sessionId,
+        session_code: echoedCode,
+        ws_url: `${WS_ORIGIN}/sessions/${sessionId}/join`,
+        status: "waiting",
+      },
+      { status: 201 },
+    );
+    res.headers.set("x-proxy-join-fallback", "1");
+    return res;
+  }
+
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete("content-encoding");
   responseHeaders.delete("content-length");
