@@ -62,27 +62,25 @@ export default function StudentJoinPage() {
       <FlowPageHeader
         rail={<StudentFlowRail />}
         title="참여 코드"
-        description="교강사「라이브 방」에 표시된 코드를 입력합니다."
         actions={
-          <Link href="/student/lectures" className={cn(buttonVariants({ variant: "outline" }))}>
-            강의 신청
+          <Link href="/student/lectures" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            강의
           </Link>
         }
       />
 
-      <Card className="mx-auto max-w-xl border-border/80 shadow-md">
+      <Card className="mx-auto max-w-md">
         <CardHeader>
-          <CardTitle>코드 입력</CardTitle>
+          <CardTitle>입력</CardTitle>
           <CardDescription>
-            교강사「라이브 퀴즈」에 보이는 참여 코드와 동일합니다(서버가 대소문자를 맞춥니다). 영문·숫자, 공백 없이{" "}
-            {JOIN_CODE_MIN_LENGTH}~{JOIN_CODE_MAX_LENGTH}자.
+            {JOIN_CODE_MIN_LENGTH}~{JOIN_CODE_MAX_LENGTH}자 · 영문·숫자
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleJoin} className="space-y-3">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground" htmlFor="join-nickname">
-                표시 이름 (수업·라이브에 보입니다)
+                이름
               </label>
               <Input
                 id="join-nickname"

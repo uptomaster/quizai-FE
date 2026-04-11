@@ -18,20 +18,20 @@ export default function InstructorDashboardPage() {
     <section className="space-y-6">
       <FlowPageHeader
         rail={<InstructorFlowRail />}
-        title={`${greetingName}님 · 결과`}
+        title={`${greetingName}님`}
         description={
           dashboardQuery.isLoading
-            ? "불러오는 중…"
+            ? "…"
             : dashboardQuery.isError
-              ? "지표를 불러오지 못했습니다."
-              : `평균 참여율 ${Math.round(data?.avg_participation_rate ?? 0)}% · 평균 정답률 ${Math.round(data?.avg_correct_rate ?? 0)}%`
+              ? "불러오기 실패"
+              : `참여 ${Math.round(data?.avg_participation_rate ?? 0)}% · 정답 ${Math.round(data?.avg_correct_rate ?? 0)}%`
         }
         actions={
           <>
             <Button variant="outline" onClick={() => window.location.assign("/instructor/lectures")}>
-              강의·퀴즈
+              강의
             </Button>
-            <Button onClick={() => window.location.assign("/instructor/sessions")}>라이브 방</Button>
+            <Button onClick={() => window.location.assign("/instructor/sessions")}>라이브</Button>
           </>
         }
       />

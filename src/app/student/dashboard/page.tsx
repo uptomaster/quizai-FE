@@ -66,13 +66,14 @@ function StudentDashboardInner() {
       <FlowPageHeader
         rail={<StudentFlowRail />}
         title="결과"
-        description="참여한 퀴즈 점수와 문항별 결과입니다."
         actions={
           <>
-            <Button variant="outline" onClick={() => window.location.assign("/student/join")}>
-              참여 코드
+            <Button variant="outline" size="sm" onClick={() => window.location.assign("/student/join")}>
+              코드
             </Button>
-            <Button onClick={() => window.location.assign("/student/play")}>퀴즈 화면</Button>
+            <Button size="sm" onClick={() => window.location.assign("/student/play")}>
+              퀴즈
+            </Button>
           </>
         }
       />

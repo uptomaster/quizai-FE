@@ -90,11 +90,11 @@ function StudentPlayContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <div className="border-b border-border/70 bg-muted/15 px-3 py-2">
+      <div className="border-b border-border bg-background px-3 py-2">
         <StudentFlowRail />
-        <div className="mt-2 flex flex-wrap justify-end gap-2">
-          <Link href="/student/dashboard" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "text-xs")}>
-            결과 보기
+        <div className="mt-1.5 flex justify-end">
+          <Link href="/student/dashboard" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
+            결과
           </Link>
         </div>
       </div>

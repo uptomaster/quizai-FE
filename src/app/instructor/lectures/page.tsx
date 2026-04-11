@@ -299,16 +299,16 @@ export default function InstructorLecturesPage() {
     <section className="space-y-6">
       <FlowPageHeader
         rail={<InstructorFlowRail />}
-        title="강의·자료·퀴즈"
-        description="강의를 고르거나 새로 만든 뒤 PDF를 올리면 퀴즈가 생성됩니다. 완료 후 라이브 방에서 참여 코드를 나눕니다."
+        title="강의·퀴즈"
+        description="PDF 올리면 퀴즈가 만들어져요."
         actions={
           <Button type="button" onClick={() => window.location.assign("/instructor/sessions")}>
-            다음: 라이브 방
+            라이브 방
           </Button>
         }
       />
 
-      <TechDetails title="이 브라우저에 저장된 퀴즈 목록">
+      <TechDetails title="저장된 퀴즈">
         <div className="space-y-3">
           {quizHistory.length === 0 ? (
             <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">

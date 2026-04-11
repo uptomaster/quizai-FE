@@ -24,7 +24,7 @@ import type { Session, StartSessionRequest } from "@/types/api";
 
 function describeLiveEvent(event: QuizWsEvent | null): string {
   if (!event) {
-    return "아직 표시할 활동이 없어요. 학생이 입장하거나 문항이 시작되면 이곳에 요약됩니다.";
+    return "대기 중";
   }
   switch (event.type) {
     case "session_joined":
@@ -99,7 +99,7 @@ function InstructorSessionsPageInner() {
 
   const activitySummary = useMemo(() => {
     if (sessionId && socket.isConnected && !socket.lastEvent) {
-      return "실시간 연결은 되었습니다. 학생이 입장하거나(참여 코드), 백엔드에서 문항을 시작하면 여기에 요약이 쌓입니다.";
+      return "학생 입장·문항 시작 시 여기에 뜹니다.";
     }
     return describeLiveEvent(socket.lastEvent);
   }, [sessionId, socket.isConnected, socket.lastEvent]);
@@ -160,16 +160,12 @@ function InstructorSessionsPageInner() {
 
   return (
     <section className="space-y-6">
-      <FlowPageHeader
-        rail={<InstructorFlowRail />}
-        title="라이브 방"
-        description="퀴즈 세트로 방을 열면 참여 코드가 생깁니다. 아래에서 실시간으로 입장·제출을 확인하세요."
-      />
+      <FlowPageHeader rail={<InstructorFlowRail />} title="라이브 방" description="방을 열면 참여 코드가 나와요." />
 
-      <Card className="shadow-sm">
+      <Card>
         <CardHeader>
-          <CardTitle>퀴즈방 만들기</CardTitle>
-          <CardDescription>생성 즉시 참여코드가 나옵니다. 학생 앱에서는 이 코드만 입력하면 됩니다.</CardDescription>
+          <CardTitle>방 열기</CardTitle>
+          <CardDescription>퀴즈 세트와 제한 시간을 정해 주세요.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleStartSession} className="grid gap-3 md:grid-cols-[1fr_140px_auto]">
@@ -248,13 +244,7 @@ function InstructorSessionsPageInner() {
                   <p className="mt-1 break-all font-mono text-2xl font-bold tracking-[0.12em] text-primary sm:text-3xl md:text-4xl">
                     {session.session_code}
                   </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    수강생 메뉴「참여 코드」에는 위와 <span className="font-medium text-foreground">동일한 문자열</span>을
-                    입력합니다. (별도 4자리/6자리 구분 없음)
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    진행 단계: <span className="font-medium text-foreground">{liveRoomPhaseLabel(session.status)}</span>
-                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">{liveRoomPhaseLabel(session.status)}</p>
                 </div>
                 <Button type="button" variant="outline" onClick={handleCopyJoinCode}>
                   코드 복사
@@ -273,33 +263,25 @@ function InstructorSessionsPageInner() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
+      <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>실시간 참여 · 제출 현황</CardTitle>
-            <CardDescription>
-              학생이 입장·답안을 보낼 때마다 서버가 WebSocket 이벤트를 밀어 주면, 아래 숫자와 표가 바로 갱신됩니다.
-            </CardDescription>
+            <CardTitle>실시간</CardTitle>
+            <CardDescription>입장·제출이 여기 반영돼요.</CardDescription>
           </div>
           <ConnectionStatus isConnected={socket.isConnected} />
         </CardHeader>
         <CardContent className="space-y-4">
           {!sessionId ? (
-            <p className="rounded-xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-              위에서 퀴즈방을 연 뒤에 참여 인원·제출 집계가 여기에 표시됩니다.
+            <p className="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-xs text-muted-foreground">
+              먼저 방을 열어 주세요.
             </p>
           ) : (
             <>
               {!socket.isConnected ? (
-                <div className="rounded-xl border border-amber-500/35 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
-                  <p className="font-medium">실시간 서버(WebSocket)에 아직 연결되지 않았습니다.</p>
-                  <p className="mt-1 text-xs opacity-90">
-                    Render가 잠든 경우 잠시 후 자동으로 다시 붙습니다. 계속이면 백엔드에서 WebSocket 경로·토큰·Origin(
-                    <span className="font-mono">quizai-fe.vercel.app</span>)을 확인하세요.
-                    {socket.connectionAttempt > 0 ? (
-                      <span className="ml-1">(재시도 {socket.connectionAttempt})</span>
-                    ) : null}
-                  </p>
+                <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+                  연결 중…
+                  {socket.connectionAttempt > 0 ? ` (${socket.connectionAttempt})` : null}
                 </div>
               ) : null}
               <LiveQuizStatusPanel
@@ -309,11 +291,8 @@ function InstructorSessionsPageInner() {
                 isConnected={socket.isConnected}
                 showConnectionChip={false}
               />
-              <p className="rounded-xl border border-border/80 bg-muted/20 p-3 text-sm leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground">최근 알림: </span>
-                {activitySummary}
-              </p>
-              <TechDetails title="최근 WebSocket 이벤트 (원문)">
+              <p className="text-xs text-muted-foreground">{activitySummary}</p>
+              <TechDetails title="이벤트 원문">
                 {rawEventText ? (
                   <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-[11px] text-muted-foreground">
                     {rawEventText}
@@ -325,11 +304,7 @@ function InstructorSessionsPageInner() {
             </>
           )}
 
-          <TechDetails title="개발자용 · 브라우저에서 답안 전송 시뮬">
-            <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
-              수업 운영은 위 표·집계만 보면 됩니다. 아래는 소켓 메시지 형식을 맞춰 볼 때만 쓰세요. 실제 문항은 보통
-              백엔드/강사 쪽에서 시작합니다.
-            </p>
+          <TechDetails title="테스트 답안 전송">
             <div className="grid gap-2 md:grid-cols-3">
               <Input
                 value={questionId}

@@ -3,7 +3,7 @@ import type { UserRole } from "@/types/api";
 
 /** 수강생·강사 화면에 노출할 실시간 연결 상태 (기술 용어 대체). */
 export const liveConnectionLabel = (isConnected: boolean): string =>
-  isConnected ? "실시간 연결됨" : "입장 대기 중";
+  isConnected ? "연결됨" : "연결 중";
 
 /** API `Session.status` 등을 사람이 읽는 짧은 문장으로. */
 export const liveRoomPhaseLabel = (apiStatus: string | undefined): string => {

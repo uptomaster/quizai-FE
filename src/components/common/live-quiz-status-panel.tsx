@@ -52,26 +52,14 @@ export function LiveQuizStatusPanel({
   const distMax = showDistribution ? Math.max(1, ...dist) : 1;
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-border/80 bg-gradient-to-br from-card to-muted/30 p-4 shadow-sm md:p-5",
-        className,
-      )}
-    >
+    <div className={cn("rounded-2xl border border-border bg-muted/30 p-4 md:p-5", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">실시간 현황</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {variant === "student"
-              ? "강사가 연 퀴즈방 기준으로 갱신됩니다."
-              : "WebSocket 이벤트(session_joined, answer_update 등)로 이 화면이 갱신됩니다."}
-          </p>
-        </div>
+        <p className="text-sm font-medium text-foreground">실시간</p>
         {showConnectionChip ? <ConnectionStatus isConnected={isConnected} /> : null}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-border/70 bg-card/90 px-3 py-3 text-center shadow-sm">
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card px-3 py-3 text-center">
           <p className="text-[11px] font-medium text-muted-foreground">남은 시간</p>
           <p
             className={cn(
@@ -86,14 +74,13 @@ export function LiveQuizStatusPanel({
           </p>
         </div>
 
-        <div className="rounded-xl border border-border/70 bg-card/90 px-3 py-3 text-center shadow-sm">
-          <p className="text-[11px] font-medium text-muted-foreground">참여 인원</p>
+        <div className="rounded-xl border border-border bg-card px-3 py-3 text-center">
+          <p className="text-[11px] font-medium text-muted-foreground">참여</p>
           <p className="mt-1 text-2xl font-bold text-foreground">{headcount ?? "—"}</p>
-          <p className="mt-0.5 text-[10px] text-muted-foreground">퀴즈방 입장 기준</p>
         </div>
 
-        <div className="rounded-xl border border-border/70 bg-card/90 px-3 py-3 text-center shadow-sm">
-          <p className="text-[11px] font-medium text-muted-foreground">답안 제출</p>
+        <div className="rounded-xl border border-border bg-card px-3 py-3 text-center">
+          <p className="text-[11px] font-medium text-muted-foreground">제출</p>
           <p className="mt-1 text-2xl font-bold text-foreground">
             {ap ? `${ap.answered}/${ap.total}` : "—"}
           </p>
@@ -108,8 +95,8 @@ export function LiveQuizStatusPanel({
       </div>
 
       {showDistribution ? (
-        <div className="mt-4 rounded-xl border border-border/70 bg-card/60 p-3">
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">보기별 선택 수 (서버 집계)</p>
+        <div className="mt-4 rounded-xl border border-border bg-card p-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">보기별</p>
           <ul className="space-y-2">
             {options.map((label, idx) => {
               const count = dist[idx] ?? 0;
@@ -133,15 +120,15 @@ export function LiveQuizStatusPanel({
       ) : null}
 
       {variant === "student" && selfSubmitted !== undefined ? (
-        <p className="mt-3 text-center text-sm font-medium text-primary">
-          {selfSubmitted ? "이 문항은 제출했어요. 집계는 강사·운영 화면에서 확인됩니다." : "답을 고른 뒤 제출하면 여기에 반영돼요."}
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          {selfSubmitted ? "제출 완료" : "보기 선택 후 제출"}
         </p>
       ) : null}
 
       {showRoster ? (
         <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">참여자 목록 · 이번 문항 제출 여부</p>
-          <div className="max-h-48 overflow-auto rounded-xl border border-border/70">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">참여자</p>
+          <div className="max-h-48 overflow-auto rounded-xl border border-border">
             <table className="w-full text-left text-xs">
               <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
                 <tr>

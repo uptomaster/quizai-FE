@@ -17,7 +17,7 @@ export function TechDetails({ title = "추가 정보", children, className }: Te
   const [open, setOpen] = useState(false);
 
   return (
-    <div className={cn("rounded-xl border border-dashed border-border/90 bg-muted/30", className)}>
+    <div className={cn("rounded-xl border border-border bg-muted/20", className)}>
       <button
         type="button"
         id={`${id}-btn`}

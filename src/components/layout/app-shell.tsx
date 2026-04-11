@@ -12,8 +12,6 @@ import {
   MonitorPlay,
   Radio,
   School,
-  Shield,
-  User,
   Users,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
@@ -22,7 +20,6 @@ import { SiteLogo } from "@/components/common/site-logo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { clearAuthSession, getStoredRole, getStoredUser } from "@/lib/auth-storage";
-import { roleHomeHint } from "@/lib/session-user-copy";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/api";
 
@@ -74,21 +71,14 @@ const SidebarLinks = ({
           href={item.href}
           onClick={onSelect}
           className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+            "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[15px] font-medium transition-colors",
             active
-              ? "bg-primary/[0.09] text-primary dark:bg-primary/15"
-              : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-              active ? "bg-primary/15 text-primary" : "bg-muted/80 text-muted-foreground",
-            )}
-          >
-            {item.icon}
-          </span>
-          <span className="leading-snug">{item.label}</span>
+          <span className={cn("opacity-90", active && "text-primary")}>{item.icon}</span>
+          <span>{item.label}</span>
         </Link>
       );
     })}
@@ -127,8 +117,6 @@ export function AppShell({ children }: AppShellProps) {
 
   const navItems = useMemo(() => NAV_MAP[role], [role]);
   const roleLabel = role === "instructor" ? "교강사" : role === "admin" ? "운영자" : "수강생";
-  const roleIcon =
-    role === "instructor" ? <Users className="h-4 w-4" /> : role === "admin" ? <Shield className="h-4 w-4" /> : <User className="h-4 w-4" />;
   const handleLogout = () => {
     clearAuthSession();
     router.push("/login");
@@ -136,33 +124,22 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-3 p-3 md:gap-5 md:p-5">
-        <aside className="hidden w-[248px] shrink-0 md:block">
-          <div className="sticky top-5 flex max-h-[calc(100dvh-2.5rem)] flex-col gap-5 overflow-y-auto rounded-[1.25rem] border border-border/55 bg-card/95 p-4 shadow-[0_8px_36px_-14px_rgba(15,23,42,0.14)] backdrop-blur-md dark:bg-card/90 dark:shadow-[0_10px_40px_-12px_rgba(0,0,0,0.5)]">
+      <div className="mx-auto flex min-h-screen max-w-[1200px] gap-4 p-3 md:gap-6 md:p-6">
+        <aside className="hidden w-[220px] shrink-0 md:block">
+          <div className="sticky top-6 flex max-h-[calc(100dvh-3rem)] flex-col gap-6 overflow-y-auto rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center gap-2.5">
-              <SiteLogo size={48} decorative className="rounded-xl" />
+              <SiteLogo size={44} decorative className="rounded-xl" />
               <div className="min-w-0">
-                <h1 className="bg-gradient-to-r from-primary to-violet-600 bg-clip-text text-base font-bold tracking-tight text-transparent">
-                  QuizAI
-                </h1>
-                <p className="text-[10px] font-medium text-muted-foreground">실시간 퀴즈</p>
-              </div>
-            </div>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">{roleHomeHint(role)}</p>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90">역할</span>
-              <div className="inline-flex w-fit items-center gap-2 rounded-xl border border-border/60 bg-muted/50 px-3 py-2 text-xs font-semibold text-foreground">
-                {roleIcon}
-                {roleLabel}
+                <h1 className="text-base font-semibold tracking-tight text-foreground">QuizAI</h1>
               </div>
             </div>
             <SidebarLinks items={navItems} pathname={pathname} />
           </div>
         </aside>
 
-        <div className="flex min-h-[calc(100dvh-1.5rem)] min-w-0 flex-1 flex-col gap-3 md:gap-4">
-          <header className="sticky top-3 z-20 md:top-5">
-            <div className="flex h-[52px] items-center justify-between gap-3 rounded-2xl border border-border/55 bg-card/90 px-3 shadow-[0_4px_24px_-10px_rgba(15,23,42,0.1)] backdrop-blur-md dark:bg-card/85 dark:shadow-[0_6px_28px_-10px_rgba(0,0,0,0.45)] md:h-14 md:px-5">
+        <div className="flex min-h-[calc(100dvh-1.5rem)] min-w-0 flex-1 flex-col gap-4">
+          <header className="sticky top-3 z-20 md:top-6">
+            <div className="flex h-12 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 md:h-12 md:px-4">
               <div className="flex min-w-0 flex-1 items-center gap-2 md:flex-none md:min-w-0">
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger
