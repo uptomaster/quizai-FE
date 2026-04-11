@@ -5,11 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { ConnectionStatus } from "@/components/common/connection-status";
-import { FlowSteps } from "@/components/common/flow-steps";
-import { HelperTip } from "@/components/common/helper-tip";
+import { FlowPageHeader } from "@/components/common/flow-page-header";
 import { LiveQuizStatusPanel } from "@/components/common/live-quiz-status-panel";
-import { PageHero } from "@/components/common/page-hero";
 import { TechDetails } from "@/components/common/tech-details";
+import { InstructorFlowRail } from "@/components/instructor/instructor-flow-rail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -160,35 +159,11 @@ function InstructorSessionsPageInner() {
   };
 
   return (
-    <section className="space-y-8">
-      <PageHero
-        title="라이브 퀴즈"
-        description="퀴즈 세트와 문항당 제한 시간을 정하면 방이 열립니다. 수강생은 참여 코드만 입력하면 됩니다."
-      />
-
-      <FlowSteps
-        steps={[
-          {
-            title: "퀴즈방 열기",
-            description: "만들어 둔 퀴즈 세트와 문항당 시간만 정하면 방이 생성됩니다.",
-          },
-          {
-            title: "참여코드 공유",
-            description: "화면에 나온 코드를 수업 채팅·QR 등으로 나눠 주세요.",
-          },
-          {
-            title: "함께 보기",
-            description: "입장·응답 현황을 이 페이지에서 한눈에 확인합니다.",
-          },
-        ]}
-      />
-
-      <HelperTip
-        title="운영 팁"
-        steps={[
-          "참여 코드를 공유한 뒤 잠시 기다렸다가 문항을 시작하면 입장률이 올라갑니다.",
-          "응답이 늦으면 제한 시간이나 난이도를 조정해 보세요.",
-        ]}
+    <section className="space-y-6">
+      <FlowPageHeader
+        rail={<InstructorFlowRail />}
+        title="라이브 방"
+        description="퀴즈 세트로 방을 열면 참여 코드가 생깁니다. 아래에서 실시간으로 입장·제출을 확인하세요."
       />
 
       <Card className="shadow-sm">
@@ -386,24 +361,18 @@ function InstructorSessionsPageInner() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>수업 공지</CardTitle>
-          <CardDescription>수업 중 수강생에게 공지를 보냅니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-            <Input
-              value={announcement}
-              onChange={(e) => setAnnouncement(e.target.value)}
-              placeholder="예: 잠시 후 2번째 퀴즈를 시작합니다."
-            />
-            <Button type="button" onClick={handleSendAnnouncement}>
-              공지 보내기
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <TechDetails title="공지 보내기 (선택)">
+        <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+          <Input
+            value={announcement}
+            onChange={(e) => setAnnouncement(e.target.value)}
+            placeholder="예: 잠시 후 2번째 퀴즈를 시작합니다."
+          />
+          <Button type="button" onClick={handleSendAnnouncement}>
+            보내기
+          </Button>
+        </div>
+      </TechDetails>
     </section>
   );
 }

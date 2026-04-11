@@ -4,8 +4,9 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { PageHero } from "@/components/common/page-hero";
+import { FlowPageHeader } from "@/components/common/flow-page-header";
 import { TechDetails } from "@/components/common/tech-details";
+import { InstructorFlowRail } from "@/components/instructor/instructor-flow-rail";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGenerateQuizMutation } from "@/hooks/api/use-generate-quiz-mutation";
@@ -159,14 +160,6 @@ export default function InstructorLecturesPage() {
     [quizSetId, refreshQuizHistory],
   );
 
-  const aiKeywords = useMemo(
-    () =>
-      activeLecture || uploadedLecture
-        ? ["핵심 개념 분류", "난이도 자동 균형", "오답 유도 포인트 탐지"]
-        : ["강의 텍스트 정규화", "키워드 추출", "문항 포맷 최적화"],
-    [activeLecture, uploadedLecture],
-  );
-
   const runGenerate = async (
     lecId: string,
     quizCount: number,
@@ -304,28 +297,22 @@ export default function InstructorLecturesPage() {
 
   return (
     <section className="space-y-6">
-      <PageHero
-        eyebrow="AI Builder"
-        title="강의를 고른 뒤, 자료를 쌓고 퀴즈를 만듭니다"
-        description="먼저 작업할 강의를 선택하거나(또는 첫 PDF로 새 강의를 만든 뒤), 같은 강의에 PDF를 계속 올려 퀴즈를 생성·다듬고 라이브로 송출하세요."
+      <FlowPageHeader
+        rail={<InstructorFlowRail />}
+        title="강의·자료·퀴즈"
+        description="강의를 고르거나 새로 만든 뒤 PDF를 올리면 퀴즈가 생성됩니다. 완료 후 라이브 방에서 참여 코드를 나눕니다."
         actions={
           <Button type="button" onClick={() => window.location.assign("/instructor/sessions")}>
-            라이브 퀴즈로 이동
+            다음: 라이브 방
           </Button>
         }
       />
 
-      <Card className="border-border/80">
-        <CardHeader>
-          <CardTitle>내 퀴즈 세트 기록</CardTitle>
-          <CardDescription>
-            이 브라우저에 저장됩니다(새로고침·다시 들어와도 유지). 서버에 별도 목록 API가 없을 때 로컬에서만 관리됩니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <TechDetails title="이 브라우저에 저장된 퀴즈 목록">
+        <div className="space-y-3">
           {quizHistory.length === 0 ? (
             <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              아직 저장된 퀴즈 세트가 없습니다. 아래에서 생성하면 여기에 쌓입니다.
+              생성한 퀴즈가 없습니다. 아래에서 만들면 여기에 쌓입니다.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -364,16 +351,13 @@ export default function InstructorLecturesPage() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </TechDetails>
 
       <Card className="border-primary/15">
         <CardHeader>
-          <CardTitle>1) 작업할 강의 선택</CardTitle>
-          <CardDescription>
-            서버에 등록된 강의 목록에서 고르거나, 아래에 강의 번호를 직접 입력하세요. 새 강의는「2)」에서 제목과 첫 PDF로
-            만들 수 있어요.
-          </CardDescription>
+          <CardTitle>강의 선택</CardTitle>
+          <CardDescription>목록에서 고르거나 강의 ID를 직접 입력하세요.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {lecturesQuery.isLoading ? (
@@ -427,8 +411,7 @@ export default function InstructorLecturesPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card
+      <Card
           className={`border-2 ${dragOver ? "border-primary bg-primary/5" : "border-dashed border-border bg-card"}`}
           onDragOver={(event) => {
             event.preventDefault();
@@ -448,11 +431,11 @@ export default function InstructorLecturesPage() {
           }}
         >
           <CardHeader>
-            <CardTitle>2) 같은 강의에 PDF 올리고 퀴즈 생성</CardTitle>
+            <CardTitle>PDF 올리고 퀴즈 생성</CardTitle>
             <CardDescription>
               {activeLecture
-                ? "선택한 강의에 자료를 추가하고, 곧바로 퀴즈를 생성합니다."
-                : "새 강의면 제목과 파일을 넣으면 강의가 생기고, 이후에는 위에서 그 강의를 골라 계속 추가할 수 있어요."}
+                ? "선택한 강의에 자료를 추가하고 퀴즈를 만듭니다."
+                : "새 강의면 제목·파일로 강의를 만들고, 이후에는 위에서 같은 강의를 골라 자료를 더할 수 있습니다."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -500,45 +483,21 @@ export default function InstructorLecturesPage() {
             <p className="mt-2 text-xs text-muted-foreground">
               {pdfFile ? `선택 파일: ${pdfFile.name}` : "선택된 파일이 없습니다."}
             </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>진행 상태</CardTitle>
-            <CardDescription>업로드와 퀴즈 생성이 한 흐름으로 이어집니다.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm font-medium">
+            <p className="mt-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
               {uploadLectureMutation.isPending
-                ? "파일을 서버에 올리는 중…"
+                ? "파일 업로드 중…"
                 : generateQuizMutation.isPending
-                  ? "같은 강의에 대해 AI가 문항을 만들고 있어요…"
+                  ? "퀴즈 문항 생성 중…"
                   : effectiveLectureId
-                    ? "준비됨. 아래에서 문항을 더 붙이거나 덮어쓸 수 있어요."
-                    : "강의를 고른 뒤 PDF를 올리면 자동으로 퀴즈 생성이 시작됩니다."}
+                    ? "같은 강의로 아래에서 문항을 더 붙이거나 덮어쓸 수 있습니다."
+                    : "강의를 고른 뒤 PDF를 올리면 퀴즈 생성이 시작됩니다."}
             </p>
-            <div className="space-y-2">
-              {aiKeywords.map((keyword) => (
-                <div key={keyword} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-                  <span>{keyword}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs ${
-                      generateQuizMutation.isPending ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {generateQuizMutation.isPending ? "running" : "idle"}
-                  </span>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
-      </div>
 
       <Card className="border-primary/20">
         <CardHeader>
-          <CardTitle>3) 같은 강의로 문항만 더 만들기 / 덮어쓰기</CardTitle>
+          <CardTitle>문항 더 만들기 · 덮어쓰기</CardTitle>
           <CardDescription>
             위에서 선택·업로드로 정해진 강의 ID(<span className="font-mono">{effectiveLectureId || "—"}</span>)를
             사용합니다.
@@ -594,8 +553,8 @@ export default function InstructorLecturesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>퀴즈 리뷰</CardTitle>
-          <CardDescription>생성된 퀴즈를 다듬은 뒤, 라이브 퀴즈 화면에서 방을 열어 수업에 사용하세요.</CardDescription>
+          <CardTitle>문항 편집</CardTitle>
+          <CardDescription>가다듬은 뒤 라이브 방에서 퀴즈를 엽니다.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {quizSetId && questions.length > 0 ? (

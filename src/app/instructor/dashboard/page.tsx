@@ -1,7 +1,8 @@
 "use client";
 
+import { FlowPageHeader } from "@/components/common/flow-page-header";
+import { InstructorFlowRail } from "@/components/instructor/instructor-flow-rail";
 import { Button } from "@/components/ui/button";
-import { PageHero } from "@/components/common/page-hero";
 import { StatTile } from "@/components/common/stat-tile";
 import { useInstructorDashboardQuery } from "@/hooks/api/use-instructor-dashboard-query";
 import { getStoredUser } from "@/lib/auth-storage";
@@ -15,21 +16,22 @@ export default function InstructorDashboardPage() {
 
   return (
     <section className="space-y-6">
-      <PageHero
-        title={`안녕하세요, ${greetingName}님`}
+      <FlowPageHeader
+        rail={<InstructorFlowRail />}
+        title={`${greetingName}님 · 결과`}
         description={
           dashboardQuery.isLoading
-            ? "대시보드를 불러오는 중입니다."
+            ? "불러오는 중…"
             : dashboardQuery.isError
-              ? "지표를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
-              : `평균 참여율 약 ${Math.round(data?.avg_participation_rate ?? 0)}%, 평균 정답률 약 ${Math.round(data?.avg_correct_rate ?? 0)}%입니다.`
+              ? "지표를 불러오지 못했습니다."
+              : `평균 참여율 ${Math.round(data?.avg_participation_rate ?? 0)}% · 평균 정답률 ${Math.round(data?.avg_correct_rate ?? 0)}%`
         }
         actions={
           <>
-            <Button onClick={() => window.location.assign("/instructor/lectures")}>자료 올리고 퀴즈 만들기</Button>
-            <Button variant="outline" onClick={() => window.location.assign("/instructor/sessions")}>
-              라이브 퀴즈 열기
+            <Button variant="outline" onClick={() => window.location.assign("/instructor/lectures")}>
+              강의·퀴즈
             </Button>
+            <Button onClick={() => window.location.assign("/instructor/sessions")}>라이브 방</Button>
           </>
         }
       />

@@ -6,36 +6,38 @@ import { ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+type Phase = "join" | "play" | "dashboard" | "lectures" | "other";
+
 /**
- * 수강생 핵심 여정: 강의 → 입장 → 풀이 → 결과 (현재 페이지에 따라 강조).
+ * 수강생 핵심 여정: 참여 코드 → 퀴즈방·풀이 → 결과 (강의는 선택).
  */
 export function StudentFlowRail() {
   const pathname = usePathname();
 
-  const phase: "lectures" | "join" | "play" | "home" = pathname.startsWith("/student/lectures")
+  const phase: Phase = pathname.startsWith("/student/lectures")
     ? "lectures"
     : pathname.startsWith("/student/join")
       ? "join"
       : pathname.startsWith("/student/play")
         ? "play"
-        : "home";
+        : pathname.startsWith("/student/dashboard")
+          ? "dashboard"
+          : "other";
 
-  const steps: { id: typeof phase | "solve"; label: string; href?: string; note?: string }[] = [
-    { id: "lectures", label: "강의 신청", href: "/student/lectures" },
-    { id: "join", label: "참여 코드", href: "/student/join" },
-    { id: "solve", label: "퀴즈 풀이", note: "입장 후" },
-    { id: "home", label: "결과", href: "/student/dashboard?open=quiz-results" },
+  const steps: {
+    id: string;
+    label: string;
+    href: string;
+    /** 이 단계에 해당하는 phase */
+    match: Phase[];
+  }[] = [
+    { id: "code", label: "참여 코드", href: "/student/join", match: ["join"] },
+    { id: "room", label: "퀴즈방 입장", href: "/student/play", match: ["play"] },
+    { id: "solve", label: "문제 풀이", href: "/student/play", match: ["play"] },
+    { id: "result", label: "결과", href: "/student/dashboard", match: ["dashboard"] },
   ];
 
-  const isActive = (s: (typeof steps)[number]) => {
-    if (s.id === "solve") {
-      return phase === "play";
-    }
-    if (s.id === "home") {
-      return phase === "home";
-    }
-    return phase === s.id;
-  };
+  const isActive = (s: (typeof steps)[number]) => s.match.includes(phase);
 
   return (
     <nav
@@ -47,34 +49,31 @@ export function StudentFlowRail() {
           {i > 0 ? (
             <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
           ) : null}
-          {s.href ? (
-            <Link
-              href={s.href}
-              className={cn(
-                "rounded-lg px-2 py-1 font-medium transition-colors",
-                isActive(s)
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
-              )}
-            >
-              {s.label}
-            </Link>
-          ) : (
-            <span
-              className={cn(
-                "rounded-lg px-2 py-1 font-medium",
-                isActive(s) ? "bg-primary/15 text-primary" : "text-muted-foreground",
-              )}
-              title={s.note}
-            >
-              {s.label}
-              {s.note ? (
-                <span className="ml-1 font-normal text-muted-foreground">({s.note})</span>
-              ) : null}
-            </span>
-          )}
+          <Link
+            href={s.href}
+            className={cn(
+              "rounded-lg px-2 py-1 font-medium transition-colors",
+              isActive(s)
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+            )}
+          >
+            {s.label}
+          </Link>
         </div>
       ))}
+      <span className="ml-1 hidden text-muted-foreground/80 sm:inline">·</span>
+      <Link
+        href="/student/lectures"
+        className={cn(
+          "ml-0 rounded-lg px-2 py-1 text-xs font-medium transition-colors sm:ml-0",
+          phase === "lectures"
+            ? "bg-muted/80 text-foreground"
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        )}
+      >
+        강의 신청(선택)
+      </Link>
     </nav>
   );
 }

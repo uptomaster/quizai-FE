@@ -43,10 +43,10 @@ export const gradeLabelKo = (grade: unknown): string => {
 export const roleHomeHint = (role: UserRole): string => {
   switch (role) {
     case "instructor":
-      return "자료 업로드와 라이브 퀴즈 운영";
+      return "강의·퀴즈 → 라이브 방 → 결과";
     case "admin":
       return "운영 지표 및 계정";
     default:
-      return "강의 신청 후 참여 코드로 입장";
+      return "코드 입력 → 퀴즈 → 결과";
   }
 };

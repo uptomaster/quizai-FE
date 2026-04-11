@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHero } from "@/components/common/page-hero";
+import { FlowPageHeader } from "@/components/common/flow-page-header";
 import { StudentFlowRail } from "@/components/student/student-flow-rail";
 import { Input } from "@/components/ui/input";
 import { useJoinSessionMutation } from "@/hooks/api/use-join-session-mutation";
@@ -59,10 +59,10 @@ export default function StudentJoinPage() {
 
   return (
     <section className="space-y-6">
-      <StudentFlowRail />
-      <PageHero
+      <FlowPageHeader
+        rail={<StudentFlowRail />}
         title="참여 코드"
-        description="교강사 화면에 표시된 참여 코드를 그대로 입력하면 됩니다. (코드 한 종류·길이는 서버가 정합니다)"
+        description="교강사「라이브 방」에 표시된 코드를 입력합니다."
         actions={
           <Link href="/student/lectures" className={cn(buttonVariants({ variant: "outline" }))}>
             강의 신청

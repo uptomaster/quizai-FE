@@ -4,7 +4,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { StudentFlowRail } from "@/components/student/student-flow-rail";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuizDeadlineCountdown } from "@/hooks/use-quiz-deadline-countdown";
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
@@ -12,6 +13,7 @@ import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { getRememberedJoinNickname, getRememberedSessionWsUrl } from "@/lib/session-ws-url";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 function formatClock(sec: number | null): string {
   if (sec === null) {
@@ -88,6 +90,14 @@ function StudentPlayContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <div className="border-b border-border/70 bg-muted/15 px-3 py-2">
+        <StudentFlowRail />
+        <div className="mt-2 flex flex-wrap justify-end gap-2">
+          <Link href="/student/dashboard" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "text-xs")}>
+            결과 보기
+          </Link>
+        </div>
+      </div>
       {sessionId ? (
         <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border/80 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="flex min-w-0 flex-col">

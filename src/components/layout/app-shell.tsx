@@ -2,7 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BookOpen, LayoutDashboard, LogOut, Menu, School, Shield, User, Users } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MonitorPlay,
+  Radio,
+  School,
+  Shield,
+  User,
+  Users,
+} from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { SiteLogo } from "@/components/common/site-logo";
@@ -25,14 +38,15 @@ interface NavItem {
 
 const NAV_MAP: Record<UserRole, NavItem[]> = {
   instructor: [
-    { href: "/instructor/dashboard", label: "대시보드", icon: <LayoutDashboard className="h-4 w-4" /> },
-    { href: "/instructor/lectures", label: "강의 자료", icon: <BookOpen className="h-4 w-4" /> },
-    { href: "/instructor/sessions", label: "라이브 퀴즈", icon: <BarChart3 className="h-4 w-4" /> },
+    { href: "/instructor/lectures", label: "강의·퀴즈", icon: <BookOpen className="h-4 w-4" /> },
+    { href: "/instructor/sessions", label: "라이브 방", icon: <Radio className="h-4 w-4" /> },
+    { href: "/instructor/dashboard", label: "결과", icon: <LayoutDashboard className="h-4 w-4" /> },
   ],
   student: [
-    { href: "/student/dashboard", label: "홈", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { href: "/student/join", label: "참여 코드", icon: <KeyRound className="h-4 w-4" /> },
+    { href: "/student/play", label: "퀴즈", icon: <MonitorPlay className="h-4 w-4" /> },
+    { href: "/student/dashboard", label: "결과", icon: <BarChart3 className="h-4 w-4" /> },
     { href: "/student/lectures", label: "강의", icon: <School className="h-4 w-4" /> },
-    { href: "/student/join", label: "입장", icon: <BookOpen className="h-4 w-4" /> },
   ],
   admin: [
     { href: "/admin/dashboard", label: "관리자 대시보드", icon: <LayoutDashboard className="h-4 w-4" /> },

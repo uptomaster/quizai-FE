@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { PageHero } from "@/components/common/page-hero";
+import { FlowPageHeader } from "@/components/common/flow-page-header";
 import { SessionResultPanel } from "@/components/student/session-result-panel";
 import { StudentFlowRail } from "@/components/student/student-flow-rail";
 import { Button } from "@/components/ui/button";
@@ -63,16 +63,16 @@ function StudentDashboardInner() {
 
   return (
     <section className="space-y-6">
-      <StudentFlowRail />
-      <PageHero
-        title="학습 홈"
-        description="참여한 퀴즈 점수와 상세 결과를 이 계정 기준으로 모아 둡니다."
+      <FlowPageHeader
+        rail={<StudentFlowRail />}
+        title="결과"
+        description="참여한 퀴즈 점수와 문항별 결과입니다."
         actions={
           <>
-            <Button variant="outline" onClick={() => window.location.assign("/student/lectures")}>
-              강의 신청
+            <Button variant="outline" onClick={() => window.location.assign("/student/join")}>
+              참여 코드
             </Button>
-            <Button onClick={() => window.location.assign("/student/join")}>코드로 입장</Button>
+            <Button onClick={() => window.location.assign("/student/play")}>퀴즈 화면</Button>
           </>
         }
       />
