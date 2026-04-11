@@ -57,8 +57,6 @@ function InstructorSessionsPageInner() {
   const [announcement, setAnnouncement] = useState("");
   const [questionId, setQuestionId] = useState("");
   const [answer, setAnswer] = useState("0");
-  /** 라이브에서 열 문항 ID (퀴즈 세트의 `quizzes[].id`와 동일해야 함) */
-  const [startQuizId, setStartQuizId] = useState("");
   const startSessionMutation = useStartSessionMutation();
 
   useEffect(() => {
@@ -268,30 +266,17 @@ function InstructorSessionsPageInner() {
       {session ? (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>문항 시작</CardTitle>
-            <CardDescription>빌더에서 만든 문항 ID를 넣고 시작하세요.</CardDescription>
+            <CardTitle>문항</CardTitle>
+            <CardDescription>방을 열 때 넣은 퀴즈 세트 순서대로 진행돼요.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="instructor-start-quiz-id">
-                문항 ID
-              </label>
-              <Input
-                id="instructor-start-quiz-id"
-                value={startQuizId}
-                onChange={(e) => setStartQuizId(e.target.value)}
-                placeholder="q_001"
-                disabled={!socket.isConnected}
-                className="font-mono text-sm"
-                autoComplete="off"
-              />
-            </div>
+          <CardContent>
             <Button
               type="button"
-              onClick={() => socket.startQuiz(startQuizId)}
-              disabled={!sessionId || !socket.isConnected || !startQuizId.trim()}
+              className="w-full sm:w-auto"
+              onClick={() => socket.startNextQuestion()}
+              disabled={!sessionId || !socket.isConnected}
             >
-              시작
+              다음 문항
             </Button>
           </CardContent>
         </Card>
