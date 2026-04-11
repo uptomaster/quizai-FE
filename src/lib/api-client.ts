@@ -37,15 +37,26 @@ apiClient.interceptors.response.use(
   (error: AxiosError<ApiErrorPayload>) => Promise.reject(error),
 );
 
+type ApiRequestConfig<TRequest, TResponse> = AxiosRequestConfig<TRequest> & {
+  /** 백엔드에 라우트가 아직 없을 때(404) 이 값을 반환하고 토스트하지 않습니다. */
+  emptyOn404?: TResponse;
+};
+
 export const apiRequest = async <TResponse, TRequest = undefined>(
-  config: AxiosRequestConfig<TRequest>,
+  config: ApiRequestConfig<TRequest, TResponse>,
 ): Promise<TResponse> => {
+  const { emptyOn404, ...axiosConfig } = config;
   try {
-    const response = await apiClient.request<TResponse, { data: TResponse }>(
-      config,
-    );
+    const response = await apiClient.request<TResponse, { data: TResponse }>(axiosConfig);
     return response.data;
   } catch (error) {
+    if (
+      emptyOn404 !== undefined &&
+      axios.isAxiosError<ApiErrorPayload>(error) &&
+      error.response?.status === 404
+    ) {
+      return emptyOn404;
+    }
     if (axios.isAxiosError<ApiErrorPayload>(error) && error.response?.status === 401) {
       clearAuthSession();
 
