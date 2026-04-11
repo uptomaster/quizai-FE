@@ -18,6 +18,11 @@ import { useStartSessionMutation } from "@/hooks/api/use-start-session-mutation"
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
 import { getInstructorQuizHistoryByQuizSetId } from "@/lib/instructor-quiz-history";
+import {
+  clearPersistedInstructorLiveSession,
+  readPersistedInstructorLiveSession,
+  writePersistedInstructorLiveSession,
+} from "@/lib/instructor-live-session";
 import { readLastQuizSet, type LastQuizSetInfo } from "@/lib/last-quiz-set";
 import type { QuizWsEvent } from "@/lib/quiz-ws-live-state";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
@@ -68,9 +73,23 @@ function InstructorSessionsPageInner() {
   const startSessionMutation = useStartSessionMutation();
 
   useEffect(() => {
-    const fromUrl = searchParams.get("quiz_set_id")?.trim();
     const stored = readLastQuizSet();
     setLastQuizHint(stored);
+    const fromUrl = searchParams.get("quiz_set_id")?.trim();
+    const persisted = readPersistedInstructorLiveSession();
+
+    if (persisted?.session) {
+      setSession(persisted.session);
+      setQuizSetId(persisted.quizSetId);
+      setTimeLimit(persisted.timeLimit);
+      setUseCustomQuizSetId(persisted.useCustomQuizSetId);
+      if (fromUrl) {
+        setQuizSetId(fromUrl);
+        setUseCustomQuizSetId(false);
+      }
+      return;
+    }
+
     if (fromUrl) {
       setQuizSetId(fromUrl);
       setUseCustomQuizSetId(false);
@@ -81,6 +100,18 @@ function InstructorSessionsPageInner() {
       setUseCustomQuizSetId(false);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!session?.session_id) {
+      return;
+    }
+    writePersistedInstructorLiveSession({
+      session,
+      quizSetId,
+      timeLimit,
+      useCustomQuizSetId,
+    });
+  }, [session, quizSetId, timeLimit, useCustomQuizSetId]);
 
   const showQuizSummary =
     Boolean(lastQuizHint) &&
@@ -178,10 +209,24 @@ function InstructorSessionsPageInner() {
       };
       const startedSession = await startSessionMutation.mutateAsync(payload);
       setSession(startedSession);
+      writePersistedInstructorLiveSession({
+        session: startedSession,
+        quizSetId,
+        timeLimit,
+        useCustomQuizSetId,
+      });
       toast.success("라이브 퀴즈방이 열렸습니다. 참여코드를 학생에게 알려주세요.");
     } catch {
       // api-client 인터셉터에서 토스트를 처리합니다.
     }
+  };
+
+  const handleEndLiveSession = () => {
+    clearPersistedInstructorLiveSession();
+    setSession(null);
+    setLocalRoundIndex(-1);
+    setLocalRoundStartedAt(null);
+    toast.success("저장된 퀴즈방을 지웠어요. 새 참여코드로 다시 열 수 있어요.");
   };
 
   const handleCopyJoinCode = async () => {
@@ -238,7 +283,9 @@ function InstructorSessionsPageInner() {
       <Card>
         <CardHeader>
           <CardTitle>방 열기</CardTitle>
-          <CardDescription>퀴즈 세트와 제한 시간을 정해 주세요.</CardDescription>
+          <CardDescription>
+            퀴즈 세트와 제한 시간을 정해 주세요. 열린 방은 이 브라우저에 저장되어 새로고침해도 같은 참여코드가 유지됩니다.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleStartSession} className="grid gap-3 md:grid-cols-[1fr_140px_auto]">
@@ -302,10 +349,19 @@ function InstructorSessionsPageInner() {
                 required
               />
             </div>
-            <div className="flex items-end">
-              <Button type="submit" disabled={startSessionMutation.isPending} className="w-full md:w-auto">
+            <div className="flex flex-col items-stretch gap-2 md:items-end">
+              <Button
+                type="submit"
+                disabled={startSessionMutation.isPending || Boolean(session)}
+                className="w-full md:w-auto"
+              >
                 {startSessionMutation.isPending ? "만드는 중…" : "퀴즈방 열기"}
               </Button>
+              {session ? (
+                <p className="text-xs text-muted-foreground">
+                  이미 방이 열려 있어요. 새 참여코드가 필요하면 아래에서 방을 종료한 뒤 다시 열어 주세요.
+                </p>
+              ) : null}
             </div>
           </form>
 
@@ -319,9 +375,14 @@ function InstructorSessionsPageInner() {
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">{liveRoomPhaseLabel(session.status)}</p>
                 </div>
-                <Button type="button" variant="outline" onClick={handleCopyJoinCode}>
-                  코드 복사
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={handleCopyJoinCode}>
+                    코드 복사
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={handleEndLiveSession}>
+                    방 종료 (저장 삭제)
+                  </Button>
+                </div>
               </div>
               <TechDetails title="세션 상세">
                 <p className="break-all text-muted-foreground">
