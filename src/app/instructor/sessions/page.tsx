@@ -57,6 +57,8 @@ function InstructorSessionsPageInner() {
   const [announcement, setAnnouncement] = useState("");
   const [questionId, setQuestionId] = useState("");
   const [answer, setAnswer] = useState("0");
+  /** 라이브에서 열 문항 ID (퀴즈 세트의 `quizzes[].id`와 동일해야 함) */
+  const [startQuizId, setStartQuizId] = useState("");
   const startSessionMutation = useStartSessionMutation();
 
   useEffect(() => {
@@ -262,6 +264,38 @@ function InstructorSessionsPageInner() {
           ) : null}
         </CardContent>
       </Card>
+
+      {session ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>문항 시작</CardTitle>
+            <CardDescription>빌더에서 만든 문항 ID를 넣고 시작하세요.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1 space-y-1">
+              <label className="text-xs font-medium text-muted-foreground" htmlFor="instructor-start-quiz-id">
+                문항 ID
+              </label>
+              <Input
+                id="instructor-start-quiz-id"
+                value={startQuizId}
+                onChange={(e) => setStartQuizId(e.target.value)}
+                placeholder="q_001"
+                disabled={!socket.isConnected}
+                className="font-mono text-sm"
+                autoComplete="off"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={() => socket.startQuiz(startQuizId)}
+              disabled={!sessionId || !socket.isConnected || !startQuizId.trim()}
+            >
+              시작
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

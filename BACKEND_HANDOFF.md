@@ -104,7 +104,8 @@ NEXT_PUBLIC_WS_URL=wss://quizai-be.onrender.com
 
 클라이언트 액션:
 
-- `sendAnswer(questionId, answer)` -> `submit_answer` 이벤트 전송
+- `sendAnswer(questionId, answer)` → `{ type: "submit_answer", quiz_id, selected_option }`
+- 교강사 `startQuiz(quizId)` → `{ type: "quiz_start", quiz_id }` (서버가 전원에게 `quiz_started` 브로드캐스트할 것으로 가정)
 
 ## 8) 화면 상태 (초기 구현)
 

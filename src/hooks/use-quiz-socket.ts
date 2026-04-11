@@ -28,6 +28,8 @@ interface UseQuizSocketResult {
   lastEvent: QuizWsEvent | null;
   liveSession: LiveSessionState;
   sendAnswer: (quizId: string, selectedOption: number) => void;
+  /** 교강사가 해당 문항을 열 때 서버로 보냄(백엔드가 `quiz_started` 브로드캐스트). */
+  startQuiz: (quizId: string) => void;
   disconnect: () => void;
   connectionAttempt: number;
 }
@@ -248,11 +250,27 @@ export function useQuizSocket({
     );
   }, []);
 
+  const startQuiz = useCallback((quizId: string) => {
+    const socket = socketRef.current;
+    const id = quizId.trim();
+    if (!id) {
+      toast.error("문항 ID를 입력해 주세요.");
+      return;
+    }
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      toast.error("실시간 연결 후 다시 시도해 주세요.");
+      return;
+    }
+    socket.send(JSON.stringify({ type: "quiz_start", quiz_id: id }));
+    toast.success("문항 시작 요청을 보냈어요.");
+  }, []);
+
   return {
     isConnected,
     lastEvent,
     liveSession,
     sendAnswer,
+    startQuiz,
     disconnect,
     connectionAttempt,
   };
