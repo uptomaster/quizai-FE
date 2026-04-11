@@ -20,7 +20,7 @@ export function saveLastQuizSet(info: {
       ...info,
       updatedAt: new Date().toISOString(),
     };
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
     // storage full or disabled
   }
@@ -31,7 +31,15 @@ export function readLastQuizSet(): LastQuizSetInfo | null {
     return null;
   }
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      const legacy = sessionStorage.getItem(STORAGE_KEY);
+      if (legacy) {
+        localStorage.setItem(STORAGE_KEY, legacy);
+        sessionStorage.removeItem(STORAGE_KEY);
+        raw = legacy;
+      }
+    }
     if (!raw) {
       return null;
     }

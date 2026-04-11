@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHero } from "@/components/common/page-hero";
@@ -13,7 +13,14 @@ import { useLecturesQuery } from "@/hooks/api/use-lectures-query";
 import { useUploadLectureMutation } from "@/hooks/api/use-upload-lecture-mutation";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { saveLastQuizSet } from "@/lib/last-quiz-set";
+import {
+  persistInstructorQuizDraft,
+  readInstructorQuizHistory,
+  removeInstructorQuizHistoryEntry,
+  upsertInstructorQuizHistory,
+  type InstructorQuizHistoryEntry,
+} from "@/lib/instructor-quiz-history";
+import { readLastQuizSet, saveLastQuizSet } from "@/lib/last-quiz-set";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { cn } from "@/lib/utils";
 import type { GenerateQuizRequest, Lecture, QuizQuestion } from "@/types/api";
@@ -32,19 +39,36 @@ export default function InstructorLecturesPage() {
   const [chosenLectureId, setChosenLectureId] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [quizHistory, setQuizHistory] = useState<InstructorQuizHistoryEntry[]>([]);
+  const persistDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const lecturesQuery = useLecturesQuery(1, 50);
   const lectures = lecturesQuery.data?.lectures ?? [];
+
+  const refreshQuizHistory = useCallback(() => {
+    setQuizHistory(readInstructorQuizHistory());
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
+    refreshQuizHistory();
+    const last = readLastQuizSet();
+    const list = readInstructorQuizHistory();
+    const match = last?.quizSetId ? list.find((e) => e.quizSetId === last.quizSetId) : null;
+    if (match && match.questions.length > 0) {
+      setQuizSetId(match.quizSetId);
+      setQuestions(match.questions);
+    }
     const saved = sessionStorage.getItem(SESSION_LECTURE_KEY);
-    if (saved) {
+    if (match?.lectureId?.trim()) {
+      setChosenLectureId(match.lectureId.trim());
+      sessionStorage.setItem(SESSION_LECTURE_KEY, match.lectureId.trim());
+    } else if (saved) {
       setChosenLectureId(saved);
     }
-  }, []);
+  }, [refreshQuizHistory]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !chosenLectureId.trim()) {
@@ -74,6 +98,66 @@ export default function InstructorLecturesPage() {
   }, [matchedFromList, uploadedLecture, chosenLectureId]);
 
   const effectiveLectureId = chosenLectureId.trim() || uploadedLecture?.lecture_id || "";
+
+  useEffect(() => {
+    if (!quizSetId.trim() || questions.length === 0) {
+      return;
+    }
+    if (persistDraftTimerRef.current) {
+      clearTimeout(persistDraftTimerRef.current);
+    }
+    persistDraftTimerRef.current = setTimeout(() => {
+      persistInstructorQuizDraft({
+        quizSetId,
+        lectureId: effectiveLectureId || undefined,
+        lectureTitle: activeLecture?.title ?? uploadedLecture?.title,
+        questions,
+      });
+      refreshQuizHistory();
+    }, 600);
+    return () => {
+      if (persistDraftTimerRef.current) {
+        clearTimeout(persistDraftTimerRef.current);
+      }
+    };
+  }, [
+    quizSetId,
+    questions,
+    effectiveLectureId,
+    activeLecture?.title,
+    uploadedLecture?.title,
+    refreshQuizHistory,
+  ]);
+
+  const handleLoadFromHistory = useCallback((entry: InstructorQuizHistoryEntry) => {
+    setQuizSetId(entry.quizSetId);
+    setQuestions(entry.questions);
+    setEditingQuestionId(null);
+    if (entry.lectureId?.trim()) {
+      setChosenLectureId(entry.lectureId.trim());
+      sessionStorage.setItem(SESSION_LECTURE_KEY, entry.lectureId.trim());
+    }
+    saveLastQuizSet({
+      quizSetId: entry.quizSetId,
+      lectureTitle: entry.lectureTitle,
+      totalQuestions: entry.questions.length,
+    });
+    toast.success("이 퀴즈 세트를 불러왔습니다.");
+  }, []);
+
+  const handleDeleteHistory = useCallback(
+    (entry: InstructorQuizHistoryEntry) => {
+      removeInstructorQuizHistoryEntry(entry.id);
+      refreshQuizHistory();
+      if (entry.quizSetId === quizSetId) {
+        setQuestions([]);
+        setQuizSetId("");
+        setEditingQuestionId(null);
+      }
+      toast.success("기록에서 삭제했습니다.");
+    },
+    [quizSetId, refreshQuizHistory],
+  );
 
   const aiKeywords = useMemo(
     () =>
@@ -109,6 +193,14 @@ export default function InstructorLecturesPage() {
       lectureTitle: meta?.lectureTitle,
       totalQuestions: totalAfter,
     });
+    const qs = mode === "replace" ? data.quizzes : [...questions, ...data.quizzes];
+    upsertInstructorQuizHistory({
+      quizSetId: data.quiz_set_id,
+      lectureId: lecId,
+      lectureTitle: meta?.lectureTitle,
+      questions: qs,
+    });
+    refreshQuizHistory();
     return data;
   };
 
@@ -222,6 +314,58 @@ export default function InstructorLecturesPage() {
           </Button>
         }
       />
+
+      <Card className="border-border/80">
+        <CardHeader>
+          <CardTitle>내 퀴즈 세트 기록</CardTitle>
+          <CardDescription>
+            이 브라우저에 저장됩니다(새로고침·다시 들어와도 유지). 서버에 별도 목록 API가 없을 때 로컬에서만 관리됩니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {quizHistory.length === 0 ? (
+            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              아직 저장된 퀴즈 세트가 없습니다. 아래에서 생성하면 여기에 쌓입니다.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {quizHistory.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-col gap-2 rounded-lg border border-border/80 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {coerceRenderableText(row.lectureTitle) || "제목 없음"} · {row.questions.length}문항
+                    </p>
+                    <p className="mt-0.5 break-all font-mono text-xs text-muted-foreground">{row.quizSetId}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {new Date(row.updatedAt).toLocaleString("ko-KR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button type="button" size="sm" variant="secondary" onClick={() => handleLoadFromHistory(row)}>
+                      불러오기
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => handleDeleteHistory(row)}>
+                      삭제
+                    </Button>
+                    <Link
+                      href={`/instructor/sessions?quiz_set_id=${encodeURIComponent(row.quizSetId)}`}
+                      className={cn(buttonVariants({ variant: "default", size: "sm" }), "inline-flex")}
+                    >
+                      라이브
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-primary/15">
         <CardHeader>

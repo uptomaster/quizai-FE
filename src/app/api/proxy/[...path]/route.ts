@@ -19,6 +19,9 @@ const wsOriginFromHttpBase = (httpBase: string): string => {
 
 const WS_ORIGIN = wsOriginFromHttpBase(API_TARGET);
 
+/** 프록시 목/폴백용 세션 ID. `sess_...` 문자열은 백엔드가 `uuid`로 조회할 때 Postgres 22P02가 납니다. */
+const newMockSessionId = (): string => crypto.randomUUID();
+
 const FORWARDED_HEADERS = [
   "authorization",
   "content-type",
@@ -161,7 +164,7 @@ const buildMockResponse = async (request: NextRequest, path: string[]) => {
   }
 
   if (method === "POST" && routePath === "/sessions/start") {
-    const sessionId = `sess_${crypto.randomUUID().slice(0, 8)}`;
+    const sessionId = newMockSessionId();
     return NextResponse.json(
       {
         session_id: sessionId,
@@ -191,7 +194,7 @@ const buildMockResponse = async (request: NextRequest, path: string[]) => {
   }
 
   if (method === "POST" && routePath === "/sessions/join") {
-    const sessionId = `sess_${crypto.randomUUID().slice(0, 8)}`;
+    const sessionId = newMockSessionId();
     return NextResponse.json(
       {
         session_id: sessionId,
@@ -361,7 +364,7 @@ const proxyRequest = async (
     } catch {
       // ignore body parse
     }
-    const sessionId = `sess_${crypto.randomUUID().slice(0, 8)}`;
+    const sessionId = newMockSessionId();
     const res = NextResponse.json(
       {
         session_id: sessionId,

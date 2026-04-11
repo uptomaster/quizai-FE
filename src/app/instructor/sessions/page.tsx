@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useQuizDeadlineCountdown } from "@/hooks/use-quiz-deadline-countdown";
 import { useStartSessionMutation } from "@/hooks/api/use-start-session-mutation";
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
+import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
 import { readLastQuizSet, type LastQuizSetInfo } from "@/lib/last-quiz-set";
 import type { QuizWsEvent } from "@/lib/quiz-ws-live-state";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
@@ -81,18 +82,28 @@ function InstructorSessionsPageInner() {
     !useCustomQuizSetId;
 
   const sessionId = session?.session_id ?? "";
+  const user = getStoredUser();
+  const accessToken =
+    typeof window !== "undefined" ? localStorage.getItem(AUTH_KEYS.accessToken) : null;
 
   const socket = useQuizSocket({
     sessionId,
     directWsUrl: session?.ws_url,
     enabled: Boolean(session?.session_id),
+    nickname: user?.name ?? "instructor",
+    token: accessToken ?? undefined,
   });
 
   const active = socket.liveSession.activeQuiz;
   const deadlineMs = active ? active.startedAt + active.time_limit * 1000 : null;
   const remainingSec = useQuizDeadlineCountdown(deadlineMs);
 
-  const activitySummary = useMemo(() => describeLiveEvent(socket.lastEvent), [socket.lastEvent]);
+  const activitySummary = useMemo(() => {
+    if (sessionId && socket.isConnected && !socket.lastEvent) {
+      return "실시간 연결은 되었습니다. 학생이 입장하거나(참여 코드), 백엔드에서 문항을 시작하면 여기에 요약이 쌓입니다.";
+    }
+    return describeLiveEvent(socket.lastEvent);
+  }, [sessionId, socket.isConnected, socket.lastEvent]);
   const rawEventText = useMemo(
     () => (socket.lastEvent ? JSON.stringify(socket.lastEvent, null, 2) : ""),
     [socket.lastEvent],
@@ -302,6 +313,18 @@ function InstructorSessionsPageInner() {
             </p>
           ) : (
             <>
+              {!socket.isConnected ? (
+                <div className="rounded-xl border border-amber-500/35 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
+                  <p className="font-medium">실시간 서버(WebSocket)에 아직 연결되지 않았습니다.</p>
+                  <p className="mt-1 text-xs opacity-90">
+                    Render가 잠든 경우 잠시 후 자동으로 다시 붙습니다. 계속이면 백엔드에서 WebSocket 경로·토큰·Origin(
+                    <span className="font-mono">quizai-fe.vercel.app</span>)을 확인하세요.
+                    {socket.connectionAttempt > 0 ? (
+                      <span className="ml-1">(재시도 {socket.connectionAttempt})</span>
+                    ) : null}
+                  </p>
+                </div>
+              ) : null}
               <LiveQuizStatusPanel
                 variant="instructor"
                 live={socket.liveSession}
@@ -322,7 +345,11 @@ function InstructorSessionsPageInner() {
           )}
 
           <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-            <p className="mb-3 text-xs font-semibold text-muted-foreground">테스트용 · 답안 보내기</p>
+            <p className="mb-1 text-xs font-semibold text-muted-foreground">개발/테스트용 · 답안 보내기</p>
+            <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
+              위쪽 요약은 <span className="font-medium text-foreground">서버가 보내는 WebSocket 이벤트</span>로만
+              채워집니다. 실제 문항 송출은 백엔드(강사 콘솔)에서 열어야 하고, 아래는 연결된 소켓으로만 전송됩니다.
+            </p>
             <div className="grid gap-2 md:grid-cols-3">
               <Input
                 value={questionId}
@@ -340,7 +367,12 @@ function InstructorSessionsPageInner() {
                 type="button"
                 variant="secondary"
                 onClick={() => socket.sendAnswer(questionId, Number(answer))}
-                disabled={!sessionId || !questionId.trim() || Number.isNaN(Number(answer))}
+                disabled={
+                  !sessionId ||
+                  !socket.isConnected ||
+                  !questionId.trim() ||
+                  Number.isNaN(Number(answer))
+                }
               >
                 테스트 제출
               </Button>
