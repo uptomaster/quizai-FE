@@ -11,8 +11,8 @@ interface TechDetailsProps {
   className?: string;
 }
 
-/** 접어 두는 기술/디버그 정보 (세션 ID 등). */
-export function TechDetails({ title = "고급 · 기술 정보", children, className }: TechDetailsProps) {
+/** 접어 두는 부가 정보(식별 번호 등). */
+export function TechDetails({ title = "추가 정보", children, className }: TechDetailsProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
 

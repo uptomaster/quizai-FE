@@ -11,19 +11,17 @@ export default function AdminLecturesPage() {
         className="from-emerald-500/15 via-cyan-500/15 to-sky-500/15"
       />
       <div className="grid gap-4 md:grid-cols-3">
-        <StatTile title="전체 강의" description="등록된 강의 자료 수" value="127" delta="+4 today" />
-        <StatTile title="업로드 실패" description="재처리 필요 건수" value="3" delta="-1" />
-        <StatTile title="퀴즈 생성 성공률" description="최근 7일" value="96%" delta="+2%" />
+        <StatTile title="전체 강의" description="등록된 강의 수" value="—" />
+        <StatTile title="처리 이슈" description="점검 필요 건수" value="—" />
+        <StatTile title="생성 성공률" description="최근 기간" value="—" />
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>운영 점검 항목</CardTitle>
-          <CardDescription>백엔드 연동 전까지는 샘플 데이터로 운영 흐름을 검증합니다.</CardDescription>
+          <CardTitle>강의 운영</CardTitle>
+          <CardDescription>강의 자료 처리와 품질 지표는 운영 정책에 맞게 연결됩니다.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• 파싱 실패 강의: PDF 2건, PPTX 1건</p>
-          <p>• 평균 처리 시간: 24초</p>
-          <p>• 재시도 큐: 3건 대기</p>
+        <CardContent className="text-sm text-muted-foreground">
+          <p>강의별 현황과 알림은 운영 정책에 맞게 구성할 수 있습니다.</p>
         </CardContent>
       </Card>
     </section>

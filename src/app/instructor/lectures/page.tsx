@@ -350,7 +350,7 @@ export default function InstructorLecturesPage() {
           </div>
 
           {uploadedLecture ? (
-            <TechDetails title="강의·세트 참조 번호 (지원·연동용)">
+            <TechDetails title="참고 번호">
               <p className="break-all text-muted-foreground">
                 <span className="font-medium text-foreground">강의:</span>{" "}
                 <span className="font-mono">{uploadedLecture.lecture_id}</span>
@@ -390,7 +390,7 @@ export default function InstructorLecturesPage() {
                 </Link>
               </div>
               <div className="mt-3">
-                <TechDetails title="연동용 퀴즈 세트 번호 (필요할 때만)">
+                <TechDetails title="퀴즈 세트 번호">
                   <p className="break-all font-mono text-[11px] text-muted-foreground">{quizSetId}</p>
                 </TechDetails>
               </div>

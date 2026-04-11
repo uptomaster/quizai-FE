@@ -13,10 +13,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = "https://quizai-fe.vercel.app";
+
 export const metadata: Metadata = {
-  title: "QuizAI — 실시간 AI 퀴즈 · 학습 피드백 플랫폼",
+  metadataBase: new URL(siteUrl),
+  title: "QuizAI — 실시간 AI 퀴즈 · 학습 피드백",
   description:
-    "강의 자료로 AI 퀴즈를 만들고, 참여코드로 라이브 퀴즈를 진행하세요. 교강사·수강생·운영자를 위한 차세대 교실 플랫폼.",
+    "강의 자료로 퀴즈를 만들고, 참여 코드로 라이브 수업을 진행하세요. 교강사·수강생·운영자가 함께 쓰는 플랫폼입니다.",
 };
 
 export default function RootLayout({

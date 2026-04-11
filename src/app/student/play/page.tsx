@@ -96,9 +96,10 @@ function StudentPlayContent() {
         </CardHeader>
         <CardContent className="pt-4">
           {sessionId ? (
-            <TechDetails title="문제가 있을 때만 · 연결 정보">
+            <TechDetails title="연결 확인">
               <p className="break-all text-muted-foreground">
-                내부 방 ID: <span className="font-mono text-foreground">{sessionId}</span>
+                <span className="font-medium text-foreground">세션</span>{" "}
+                <span className="font-mono text-foreground">{sessionId}</span>
               </p>
             </TechDetails>
           ) : null}

@@ -266,12 +266,12 @@ function InstructorSessionsPageInner() {
                   코드 복사
                 </Button>
               </div>
-              <TechDetails title="고급 · 기술 정보 (지원·연동용)">
+              <TechDetails title="세션 상세">
                 <p className="break-all text-muted-foreground">
-                  <span className="font-medium text-foreground">내부 방 ID:</span> {session.session_id}
+                  <span className="font-medium text-foreground">세션 번호</span> {session.session_id}
                 </p>
                 <p className="mt-2 break-all text-muted-foreground">
-                  <span className="font-medium text-foreground">실시간 주소:</span> {session.ws_url}
+                  <span className="font-medium text-foreground">실시간 연결</span> {session.ws_url}
                 </p>
               </TechDetails>
             </div>
@@ -301,7 +301,7 @@ function InstructorSessionsPageInner() {
                 isConnected={socket.isConnected}
               />
               <p className="rounded-xl border border-border/80 bg-card p-4 text-sm leading-relaxed">{activitySummary}</p>
-              <TechDetails title="원본 이벤트 데이터 (개발·디버그)">
+              <TechDetails title="최근 이벤트 기록">
                 {rawEventText ? (
                   <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-[11px] text-muted-foreground">
                     {rawEventText}
@@ -344,7 +344,7 @@ function InstructorSessionsPageInner() {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>수업 공지</CardTitle>
-          <CardDescription>수강생에게 한 줄 공지를 보냅니다. (연동 시 실제 채널로 전송되도록 확장 가능)</CardDescription>
+          <CardDescription>수업 중 수강생에게 공지를 보냅니다.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-2 md:grid-cols-[1fr_auto]">

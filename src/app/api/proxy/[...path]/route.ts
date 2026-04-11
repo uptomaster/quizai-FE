@@ -168,7 +168,7 @@ const buildMockResponse = async (request: NextRequest, path: string[]) => {
       {
         results: [
           {
-            session_id: "sess_demo_001",
+            session_id: "sess_preview_001",
             title: "머신러닝 기초 라이브 퀴즈",
             attended_at: new Date().toISOString(),
             my_score: 72,

@@ -112,7 +112,7 @@ const personaCopy: Record<
     label: "운영자",
     icon: Shield,
     headline: "같은 라이브를 모니터링",
-    steps: ["세션·방 ID로 실시간 지표 접속", "수업 품질·이상 징후 파악", "장애·문의 대응에 활용"],
+    steps: ["실시간 세션에서 진행 현황 확인", "수업 품질·이상 징후 파악", "문의·대응에 활용"],
     accent: "text-foreground",
   },
 };
@@ -276,7 +276,7 @@ export function LandingMainInteractive() {
                 })}
               </nav>
               <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                {["PDF·텍스트 기반 생성", "WebSocket 라이브", "역할별 대시보드"].map((t) => (
+                {["PDF·텍스트 기반 생성", "실시간 라이브 반응", "역할별 화면"].map((t) => (
                   <li key={t} className="flex items-center gap-2">
                     <Check className="size-4 shrink-0 text-emerald-600" aria-hidden />
                     {t}
@@ -415,7 +415,7 @@ export function LandingMainInteractive() {
               </div>
               <h3 className="mt-2 text-2xl font-bold md:text-3xl">같은 라이브를 운영자도 모니터링</h3>
               <p className="mt-2 max-w-xl text-muted-foreground">
-                방 ID로 실시간 지표에 접속해, 수업 품질과 장애 대응을 지원할 수 있습니다.
+                진행 중인 세션을 모니터링하고 수업 품질을 함께 맞출 수 있습니다.
               </p>
             </div>
             <Link href="/register" className={cn(buttonVariants({ size: "lg" }), "shrink-0 gap-2")}>

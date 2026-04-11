@@ -64,7 +64,7 @@ export default function AdminUsersPage() {
     <section className="space-y-6">
       <PageHero
         title="사용자 권한 관리"
-        description="백엔드 DB 기반 사용자/리스크 정보를 조회합니다."
+        description="교강사·수강생 계정과 리스크 신호를 한곳에서 확인합니다."
       />
       <Card>
         <CardHeader>
