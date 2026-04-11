@@ -4,25 +4,16 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
+import { QuizQuestionView, formatQuizClock } from "@/components/quiz/quiz-question-view";
 import { StudentFlowRail } from "@/components/student/student-flow-rail";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuizDeadlineCountdown } from "@/hooks/use-quiz-deadline-countdown";
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
-import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { getRememberedJoinNickname, getRememberedSessionWsUrl } from "@/lib/session-ws-url";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-
-function formatClock(sec: number | null): string {
-  if (sec === null) {
-    return "—";
-  }
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function StudentPlayContent() {
   const searchParams = useSearchParams();
@@ -110,7 +101,7 @@ function StudentPlayContent() {
                 remainingSec !== null && remainingSec <= 5 ? "text-destructive" : "text-foreground",
               )}
             >
-              {active ? formatClock(remainingSec) : "—"}
+              {active ? formatQuizClock(remainingSec) : "—"}
             </span>
           </div>
           <div className="text-right text-xs text-muted-foreground">
@@ -143,61 +134,37 @@ function StudentPlayContent() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="mx-auto w-full max-w-lg border-border/90 shadow-lg">
+          <div className="mx-auto w-full max-w-lg">
             {currentQuestion ? (
-              <>
-                <CardHeader className="space-y-1 pb-2">
-                  <CardTitle className="text-lg leading-snug md:text-xl">
-                    {coerceRenderableText(currentQuestion.question)}
-                  </CardTitle>
-                  <CardDescription>제한 {currentQuestion.time_limit}초 · 선택 후 제출</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  {(currentQuestion.options ?? []).map((option, index) => (
-                    <button
-                      key={`${currentQuestion.quiz_id}-${index}`}
-                      type="button"
-                      onClick={() => {
-                        setSelectedOption(index);
-                        setSubmitted(false);
-                      }}
-                      className={cn(
-                        "w-full rounded-2xl border px-4 py-3.5 text-left text-sm transition-all",
-                        selectedOption === index
-                          ? "border-primary bg-primary/10 font-medium text-primary shadow-sm ring-2 ring-primary/20"
-                          : "border-border/90 bg-card hover:border-primary/30 hover:bg-muted/50",
-                      )}
-                    >
-                      <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">
-                        {index + 1}
-                      </span>
-                      {coerceRenderableText(option)}
-                    </button>
-                  ))}
-                  <Button
-                    onClick={handleSubmit}
-                    className="mt-2 h-12 w-full text-base"
-                    size="lg"
-                    disabled={!active}
-                  >
-                    답안 제출
-                  </Button>
-                  {submitted ? (
-                    <p className="text-center text-xs text-muted-foreground">제출 완료. 강사 화면에서 집계됩니다.</p>
-                  ) : null}
-                </CardContent>
-              </>
+              <QuizQuestionView
+                key={currentQuestion.quiz_id}
+                variant="student"
+                question={currentQuestion.question}
+                options={currentQuestion.options ?? []}
+                timeLimitSec={currentQuestion.time_limit}
+                remainingSec={remainingSec}
+                selectedOption={selectedOption}
+                onSelectOption={(index) => {
+                  setSelectedOption(index);
+                  setSubmitted(false);
+                }}
+                onSubmit={handleSubmit}
+                submitDisabled={!active}
+                footerNote={submitted ? "제출 완료. 강사 화면에서 집계됩니다." : undefined}
+              />
             ) : (
-              <CardContent className="py-14 text-center">
-                <p className="text-base font-medium text-foreground">문항 대기</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {socket.isConnected
-                    ? "강사가 문항을 열면 여기에 표시됩니다."
-                    : "실시간 서버에 연결하는 중입니다…"}
-                </p>
-              </CardContent>
+              <Card className="border-border/90 shadow-lg">
+                <CardContent className="py-14 text-center">
+                  <p className="text-base font-medium text-foreground">문항 대기</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {socket.isConnected
+                      ? "강사가 문항을 열면 여기에 표시됩니다."
+                      : "실시간 서버에 연결하는 중입니다…"}
+                  </p>
+                </CardContent>
+              </Card>
             )}
-          </Card>
+          </div>
         )}
       </main>
     </div>

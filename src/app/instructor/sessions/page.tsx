@@ -9,6 +9,7 @@ import { FlowPageHeader } from "@/components/common/flow-page-header";
 import { LiveQuizStatusPanel } from "@/components/common/live-quiz-status-panel";
 import { TechDetails } from "@/components/common/tech-details";
 import { InstructorFlowRail } from "@/components/instructor/instructor-flow-rail";
+import { QuizQuestionView, formatQuizClock } from "@/components/quiz/quiz-question-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,10 +17,12 @@ import { useQuizDeadlineCountdown } from "@/hooks/use-quiz-deadline-countdown";
 import { useStartSessionMutation } from "@/hooks/api/use-start-session-mutation";
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
+import { getInstructorQuizHistoryByQuizSetId } from "@/lib/instructor-quiz-history";
 import { readLastQuizSet, type LastQuizSetInfo } from "@/lib/last-quiz-set";
 import type { QuizWsEvent } from "@/lib/quiz-ws-live-state";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { liveRoomPhaseLabel } from "@/lib/session-user-copy";
+import { cn } from "@/lib/utils";
 import type { Session, StartSessionRequest } from "@/types/api";
 
 function describeLiveEvent(event: QuizWsEvent | null): string {
@@ -57,6 +60,9 @@ function InstructorSessionsPageInner() {
   const [announcement, setAnnouncement] = useState("");
   const [questionId, setQuestionId] = useState("");
   const [answer, setAnswer] = useState("0");
+  /** 로컬에 저장된 세트 순서로 강사 화면에 즉시 표시 (-1 = 아직 「다음 문항」 미클릭) */
+  const [localRoundIndex, setLocalRoundIndex] = useState(-1);
+  const [localRoundStartedAt, setLocalRoundStartedAt] = useState<number | null>(null);
   const startSessionMutation = useStartSessionMutation();
 
   useEffect(() => {
@@ -94,8 +100,55 @@ function InstructorSessionsPageInner() {
   });
 
   const active = socket.liveSession.activeQuiz;
-  const deadlineMs = active ? active.startedAt + active.time_limit * 1000 : null;
+
+  const timeLimitSec = useMemo(
+    () => Math.min(180, Math.max(10, Number(timeLimit) || 30)),
+    [timeLimit],
+  );
+
+  const localQuestions = useMemo(() => {
+    const entry = getInstructorQuizHistoryByQuizSetId(quizSetId.trim());
+    return entry?.questions ?? [];
+  }, [quizSetId]);
+
+  const displayQuiz = useMemo(() => {
+    if (active) {
+      return active;
+    }
+    if (localRoundIndex < 0 || !localQuestions.length || localRoundStartedAt === null) {
+      return null;
+    }
+    const q = localQuestions[localRoundIndex];
+    if (!q) {
+      return null;
+    }
+    return {
+      quiz_id: q.id,
+      question: q.question,
+      options: Array.isArray(q.options) ? q.options : [],
+      time_limit: timeLimitSec,
+      startedAt: localRoundStartedAt,
+    };
+  }, [active, localRoundIndex, localQuestions, localRoundStartedAt, timeLimitSec]);
+
+  const mergedLiveSession = useMemo(() => {
+    const base = socket.liveSession;
+    if (base.activeQuiz) {
+      return base;
+    }
+    if (displayQuiz) {
+      return { ...base, activeQuiz: displayQuiz };
+    }
+    return base;
+  }, [socket.liveSession, displayQuiz]);
+
+  const deadlineMs = displayQuiz ? displayQuiz.startedAt + displayQuiz.time_limit * 1000 : null;
   const remainingSec = useQuizDeadlineCountdown(deadlineMs);
+
+  useEffect(() => {
+    setLocalRoundIndex(-1);
+    setLocalRoundStartedAt(null);
+  }, [session?.session_id]);
 
   const activitySummary = useMemo(() => {
     if (sessionId && socket.isConnected && !socket.lastEvent) {
@@ -156,6 +209,19 @@ function InstructorSessionsPageInner() {
     }
     toast.success("수강생에게 공지를 보냈습니다.");
     setAnnouncement("");
+  };
+
+  const handleNextQuestion = () => {
+    if (localQuestions.length > 0) {
+      const next = localRoundIndex + 1;
+      if (next >= localQuestions.length) {
+        toast.info("이 세트의 마지막 문항이에요.");
+        return;
+      }
+      setLocalRoundIndex(next);
+      setLocalRoundStartedAt(Date.now());
+    }
+    socket.startNextQuestion();
   };
 
   return (
@@ -265,15 +331,56 @@ function InstructorSessionsPageInner() {
 
       {session ? (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>문항</CardTitle>
-            <CardDescription>방을 열 때 넣은 퀴즈 세트 순서대로 진행돼요.</CardDescription>
+          <CardHeader className="space-y-2 pb-2">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle>같이 보는 퀴즈</CardTitle>
+                <CardDescription>
+                  수강생 화면과 같은 문항·보기·타이머예요. 이 브라우저에 저장된 세트가 있으면 「다음 문항」 즉시
+                  반영되고, 서버 이벤트가 오면 그쪽과 맞춰집니다.
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  남은 시간
+                </p>
+                <p
+                  className={cn(
+                    "font-mono text-2xl font-bold tabular-nums",
+                    remainingSec !== null && remainingSec <= 5 ? "text-destructive" : "text-foreground",
+                  )}
+                >
+                  {displayQuiz ? formatQuizClock(remainingSec) : "—"}
+                </p>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="flex justify-center">
+              {displayQuiz ? (
+                <QuizQuestionView
+                  key={`${displayQuiz.quiz_id}-${displayQuiz.startedAt}`}
+                  variant="instructor"
+                  question={displayQuiz.question}
+                  options={displayQuiz.options}
+                  timeLimitSec={displayQuiz.time_limit}
+                  remainingSec={remainingSec}
+                />
+              ) : (
+                <div className="w-full max-w-lg rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
+                  <p className="text-base font-medium text-foreground">문항 대기</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {localQuestions.length === 0
+                      ? "이 브라우저에 해당 퀴즈 세트 기록이 없으면, 서버에서 문항이 열릴 때까지 기다리거나 퀴즈 빌더에서 같은 세트로 저장해 주세요."
+                      : "「다음 문항」을 누르면 여기에 첫 문항이 열려요."}
+                  </p>
+                </div>
+              )}
+            </div>
             <Button
               type="button"
               className="w-full sm:w-auto"
-              onClick={() => socket.startNextQuestion()}
+              onClick={handleNextQuestion}
               disabled={!sessionId || !socket.isConnected}
             >
               다음 문항
@@ -305,7 +412,7 @@ function InstructorSessionsPageInner() {
               ) : null}
               <LiveQuizStatusPanel
                 variant="instructor"
-                live={socket.liveSession}
+                live={mergedLiveSession}
                 remainingSec={remainingSec}
                 isConnected={socket.isConnected}
                 showConnectionChip={false}
