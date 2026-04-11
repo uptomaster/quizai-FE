@@ -10,6 +10,7 @@ import {
   type LiveSessionState,
   type QuizWsEvent,
 } from "@/lib/quiz-ws-live-state";
+import { logQuizWs, redactWsUrlForLog, truncateForLog } from "@/lib/quiz-ws-debug";
 
 interface UseQuizSocketOptions {
   sessionId: string;
@@ -18,6 +19,8 @@ interface UseQuizSocketOptions {
   wsBaseUrl?: string;
   nickname?: string;
   token?: string;
+  /** 콘솔 로그에 표시 (예: instructor, student). `NEXT_PUBLIC_DEBUG_QUIZ_WS` 또는 dev 에서 상세 로그 */
+  debugLabel?: string;
   onQuizStarted?: (payload: QuizWsEvent & { type: "quiz_started" }) => void;
   onAnswerUpdate?: (payload: QuizWsEvent & { type: "answer_update" }) => void;
   onSessionEnded?: (payload: QuizWsEvent & { type: "session_ended" }) => void;
@@ -50,6 +53,7 @@ export function useQuizSocket({
   onQuizStarted,
   onAnswerUpdate,
   onSessionEnded,
+  debugLabel = "client",
 }: UseQuizSocketOptions): UseQuizSocketResult {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,9 +124,30 @@ export function useQuizSocket({
     const attachHandlers = (socket: WebSocket) => {
       socket.onmessage = (event) => {
         try {
-          const raw = JSON.parse(event.data) as unknown;
+          const rawStr = typeof event.data === "string" ? event.data : String(event.data);
+          logQuizWs(debugLabel, "← 수신(원문)", truncateForLog(rawStr));
+
+          let raw: unknown;
+          try {
+            raw = JSON.parse(rawStr) as unknown;
+          } catch (e) {
+            logQuizWs(debugLabel, "← JSON 파싱 실패 (서버가 JSON 이 아님?)", e);
+            toast.error("실시간 알림을 읽는 데 문제가 있었습니다.");
+            return;
+          }
+
           const parsed = tryParseQuizWsEvent(raw);
           if (parsed) {
+            logQuizWs(
+              debugLabel,
+              "← 파싱 성공",
+              `type=${parsed.type}`,
+              parsed.type === "quiz_started"
+                ? { quiz_id: parsed.payload.quiz_id, time_limit: parsed.payload.time_limit }
+                : parsed.type === "session_joined"
+                  ? { nickname: parsed.payload.nickname, participant_count: parsed.payload.participant_count }
+                  : parsed.type,
+            );
             setLastEvent(parsed);
             setLiveSession((prev) => reduceLiveSessionState(prev, parsed));
 
@@ -136,17 +161,26 @@ export function useQuizSocket({
               onSessionEnded?.(parsed);
               toast.info("이번 퀴즈가 종료되었습니다.");
             }
+          } else {
+            logQuizWs(
+              debugLabel,
+              "← 파싱 스킵",
+              "프론트가 아는 type/payload 형식이 아닙니다. 백엔드 이벤트명·필드가 다를 수 있습니다.",
+              raw,
+            );
           }
-        } catch {
+        } catch (err) {
+          logQuizWs(debugLabel, "onmessage 처리 중 예외", err);
           toast.error("실시간 알림을 읽는 데 문제가 있었습니다.");
         }
       };
 
-      socket.onerror = () => {
-        // 실패는 onclose + 재시도로 처리 (중복 토스트 방지)
+      socket.onerror = (ev) => {
+        logQuizWs(debugLabel, "socket error", ev);
       };
 
-      socket.onclose = () => {
+      socket.onclose = (ev) => {
+        logQuizWs(debugLabel, "연결 종료", { code: ev.code, reason: ev.reason || "(없음)", wasClean: ev.wasClean });
         setIsConnected(false);
         socketRef.current = null;
         if (cancelled) {
@@ -180,6 +214,11 @@ export function useQuizSocket({
         reconnectTimerRef.current = null;
       }
       try {
+        logQuizWs(debugLabel, "연결 시도", {
+          sessionId,
+          url: redactWsUrlForLog(url),
+          hint: "교강사·수강생 이 sessionId 가 동일해야 같은 방입니다. join/start 응답의 session_id 와 비교하세요.",
+        });
         const socket = new WebSocket(url);
         socketRef.current = socket;
         socket.onopen = () => {
@@ -189,6 +228,7 @@ export function useQuizSocket({
           attempt = 0;
           setConnectionAttempt(0);
           setIsConnected(true);
+          logQuizWs(debugLabel, "연결됨 (OPEN)", { sessionId, url: redactWsUrlForLog(url) });
           if (!shownConnectToastRef.current) {
             shownConnectToastRef.current = true;
             toast.success("실시간 퀴즈방에 연결되었습니다.");
@@ -231,24 +271,28 @@ export function useQuizSocket({
     onSessionEnded,
     sessionId,
     url,
+    debugLabel,
   ]);
 
-  const sendAnswer = useCallback((quizId: string, selectedOption: number) => {
-    const socket = socketRef.current;
+  const sendAnswer = useCallback(
+    (quizId: string, selectedOption: number) => {
+      const socket = socketRef.current;
 
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      toast.error("아직 퀴즈방에 완전히 연결되지 않았어요. 잠시 후 다시 눌러주세요.");
-      return;
-    }
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        toast.error("아직 퀴즈방에 완전히 연결되지 않았어요. 잠시 후 다시 눌러주세요.");
+        return;
+      }
 
-    socket.send(
-      JSON.stringify({
+      const payload = {
         type: "submit_answer",
         quiz_id: quizId,
         selected_option: selectedOption,
-      }),
-    );
-  }, []);
+      };
+      logQuizWs(debugLabel, "→ 송신", payload);
+      socket.send(JSON.stringify(payload));
+    },
+    [debugLabel],
+  );
 
   const startNextQuestion = useCallback(() => {
     const socket = socketRef.current;
@@ -256,14 +300,14 @@ export function useQuizSocket({
       toast.error("실시간 연결 후 다시 시도해 주세요.");
       return;
     }
-    socket.send(
-      JSON.stringify({
-        type: "next_question",
-        session_id: sessionId,
-      }),
-    );
+    const payload = {
+      type: "next_question",
+      session_id: sessionId,
+    };
+    logQuizWs(debugLabel, "→ 송신", payload);
+    socket.send(JSON.stringify(payload));
     toast.success("다음 문항을 보냈어요.");
-  }, [sessionId]);
+  }, [sessionId, debugLabel]);
 
   return {
     isConnected,

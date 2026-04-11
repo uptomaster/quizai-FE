@@ -87,6 +87,7 @@ function StudentPlayContent() {
     enabled: sessionId.length > 0,
     nickname: joinNickname ?? user?.name ?? "student",
     token: token ?? undefined,
+    debugLabel: "student",
   });
 
   const wsActive = socket.liveSession.activeQuiz;

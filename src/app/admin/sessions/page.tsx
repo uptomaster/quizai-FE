@@ -27,6 +27,7 @@ export default function AdminSessionsPage() {
     enabled: activeRoomId.length > 0,
     nickname: "운영-모니터",
     token: token ?? undefined,
+    debugLabel: "admin",
   });
 
   const active = socket.liveSession.activeQuiz;

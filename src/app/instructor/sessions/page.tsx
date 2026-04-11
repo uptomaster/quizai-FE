@@ -135,6 +135,7 @@ function InstructorSessionsPageInner() {
     enabled: Boolean(session?.session_id),
     nickname: user?.name ?? "instructor",
     token: accessToken ?? undefined,
+    debugLabel: "instructor",
   });
 
   const active = socket.liveSession.activeQuiz;
