@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminDashboardQuery } from "@/hooks/api/use-admin-dashboard-query";
 import { useLecturesQuery } from "@/hooks/api/use-lectures-query";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 
 export default function AdminLecturesPage() {
   const lecturesQuery = useLecturesQuery(1, 50);
@@ -66,7 +67,7 @@ export default function AdminLecturesPage() {
               {rows.map((lec) => (
                 <li key={lec.lecture_id} className="flex flex-col gap-1 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-medium">{lec.title}</p>
+                    <p className="font-medium">{coerceRenderableText(lec.title) || "강의"}</p>
                     <p className="text-xs text-muted-foreground">
                       {lec.created_at ? new Date(lec.created_at).toLocaleString() : null}
                       {typeof lec.quiz_count === "number" ? ` · 퀴즈 ${lec.quiz_count}세트` : null}

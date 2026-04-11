@@ -88,10 +88,19 @@ const buildMockResponse = async (request: NextRequest, path: string[]) => {
   }
 
   if (method === "POST" && routePath === "/lectures/upload") {
+    const formData = await request.formData().catch(() => null);
+    const existing = formData?.get("lecture_id");
+    const titleField = formData?.get("title");
+    const lecture_id =
+      typeof existing === "string" && existing.trim().length > 0
+        ? existing.trim()
+        : `lec_${crypto.randomUUID().slice(0, 8)}`;
+    const title =
+      typeof titleField === "string" && titleField.trim().length > 0 ? titleField.trim() : "Mock Lecture";
     return NextResponse.json(
       {
-        lecture_id: `lec_${crypto.randomUUID().slice(0, 8)}`,
-        title: "Mock Lecture",
+        lecture_id,
+        title,
         file_url: "https://example.com/mock.pdf",
         text_length: 4820,
         created_at: new Date().toISOString(),

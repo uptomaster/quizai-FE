@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useQuizDeadlineCountdown } from "@/hooks/use-quiz-deadline-countdown";
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { cn } from "@/lib/utils";
 
 function StudentPlayContent() {
@@ -110,7 +111,9 @@ function StudentPlayContent() {
         {currentQuestion ? (
           <>
             <CardHeader>
-              <CardTitle className="text-lg leading-snug md:text-xl">{currentQuestion.question}</CardTitle>
+              <CardTitle className="text-lg leading-snug md:text-xl">
+                {coerceRenderableText(currentQuestion.question)}
+              </CardTitle>
               <CardDescription>
                 제한 시간 {currentQuestion.time_limit}초
               </CardDescription>
@@ -134,7 +137,7 @@ function StudentPlayContent() {
                   <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">
                     {index + 1}
                   </span>
-                  {option}
+                  {coerceRenderableText(option)}
                 </button>
               ))}
               <Button

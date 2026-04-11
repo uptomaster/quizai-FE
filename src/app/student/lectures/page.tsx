@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { PageHero } from "@/components/common/page-hero";
 import { StudentFlowRail } from "@/components/student/student-flow-rail";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,7 +64,7 @@ export default function StudentLecturesPage() {
                 return (
                   <li key={lec.lecture_id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="font-medium">{lec.title}</p>
+                      <p className="font-medium">{coerceRenderableText(lec.title) || "강의"}</p>
                       <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
                         강의 코드 {lec.lecture_id}
                       </p>

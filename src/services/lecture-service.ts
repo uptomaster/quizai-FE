@@ -1,5 +1,19 @@
 import { apiClient, apiRequest } from "@/lib/api-client";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import type { Lecture, LectureEnrollResponse, LecturesListResponse, UploadLectureRequest } from "@/types/api";
+
+const normalizeLecture = (raw: unknown): Lecture => {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    lecture_id: coerceRenderableText(r.lecture_id) || String(r.lecture_id ?? ""),
+    title: coerceRenderableText(r.title) || "강의",
+    file_url: typeof r.file_url === "string" ? r.file_url : undefined,
+    text_length: typeof r.text_length === "number" ? r.text_length : undefined,
+    quiz_count: typeof r.quiz_count === "number" ? r.quiz_count : undefined,
+    created_at: typeof r.created_at === "string" ? r.created_at : new Date().toISOString(),
+    is_enrolled: typeof r.is_enrolled === "boolean" ? r.is_enrolled : undefined,
+  };
+};
 
 interface LectureUploadResponse {
   lecture_id: string;
@@ -10,12 +24,15 @@ interface LectureUploadResponse {
 }
 
 export const lectureService = {
-  list(page = 1, limit = 20) {
-    return apiRequest<LecturesListResponse>({
+  async list(page = 1, limit = 20): Promise<LecturesListResponse> {
+    const res = await apiRequest<LecturesListResponse>({
       method: "GET",
       url: "/lectures",
       params: { page, limit },
     });
+    const lectures = Array.isArray(res.lectures) ? res.lectures.map(normalizeLecture) : [];
+    const total = typeof res.total === "number" ? res.total : lectures.length;
+    return { lectures, total };
   },
 
   enroll(lectureId: string) {
@@ -32,18 +49,15 @@ export const lectureService = {
     if (payload.title) {
       formData.append("title", payload.title);
     }
+    if (payload.lectureId) {
+      formData.append("lecture_id", payload.lectureId);
+    }
     const response = await apiClient.post<LectureUploadResponse>("/lectures/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
 
-    return {
-      lecture_id: response.data.lecture_id,
-      title: response.data.title,
-      file_url: response.data.file_url,
-      text_length: response.data.text_length,
-      created_at: response.data.created_at,
-    };
+    return normalizeLecture(response.data as unknown);
   },
 };

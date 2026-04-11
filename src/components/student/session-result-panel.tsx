@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { gradeLabelKo } from "@/lib/session-user-copy";
 import { cn } from "@/lib/utils";
 import type { SessionResult } from "@/types/api";
@@ -81,7 +82,11 @@ export function SessionResultPanel({
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           많이 틀린 주제는{" "}
           <span className="font-medium text-foreground">
-            {weakConcepts.slice(0, 2).join(", ") || "아직 없음"}
+            {weakConcepts
+              .slice(0, 2)
+              .map((w) => coerceRenderableText(w))
+              .filter(Boolean)
+              .join(", ") || "아직 없음"}
           </span>
           입니다.
         </p>
@@ -101,7 +106,7 @@ export function SessionResultPanel({
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-medium">
-                  {student.nickname}
+                  {coerceRenderableText(student.nickname) || "—"}
                   {mine ? (
                     <span className="ml-2 text-xs font-normal text-primary">나</span>
                   ) : null}

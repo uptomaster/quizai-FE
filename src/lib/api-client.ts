@@ -82,8 +82,19 @@ export const apiRequest = async <TResponse, TRequest = undefined>(
 
       if (typeof detail === "string" && detail.trim().length > 0) {
         message = detail;
+      } else if (Array.isArray(detail)) {
+        message = detail
+          .map((item) =>
+            item && typeof item === "object" && "msg" in item
+              ? String((item as { msg: unknown }).msg)
+              : String(item),
+          )
+          .filter(Boolean)
+          .join(" ");
+      } else if (detail !== null && detail !== undefined && typeof detail === "object") {
+        message = JSON.stringify(detail);
       } else if (error.response?.data?.message) {
-        message = error.response.data.message;
+        message = String(error.response.data.message);
       }
     }
 

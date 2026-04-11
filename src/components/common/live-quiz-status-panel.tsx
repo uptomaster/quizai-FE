@@ -1,6 +1,7 @@
 "use client";
 
 import { ConnectionStatus } from "@/components/common/connection-status";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { cn } from "@/lib/utils";
 import type { LiveSessionState } from "@/lib/quiz-ws-live-state";
 
@@ -121,9 +122,12 @@ export function LiveQuizStatusPanel({
                     </td>
                   </tr>
                 ) : (
-                  roster.map((p) => (
-                    <tr key={p.nickname} className="border-t border-border/50">
-                      <td className="px-3 py-2 font-medium">{p.nickname}</td>
+                  roster.map((p, idx) => (
+                    <tr
+                      key={`${idx}-${coerceRenderableText(p.nickname) || "u"}`}
+                      className="border-t border-border/50"
+                    >
+                      <td className="px-3 py-2 font-medium">{coerceRenderableText(p.nickname) || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">
                         {new Date(p.joinedAt).toLocaleTimeString(undefined, {
                           hour: "2-digit",

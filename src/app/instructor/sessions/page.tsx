@@ -18,6 +18,7 @@ import { useStartSessionMutation } from "@/hooks/api/use-start-session-mutation"
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import { readLastQuizSet, type LastQuizSetInfo } from "@/lib/last-quiz-set";
 import type { QuizWsEvent } from "@/lib/quiz-ws-live-state";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { liveRoomPhaseLabel } from "@/lib/session-user-copy";
 import type { Session, StartSessionRequest } from "@/types/api";
 
@@ -27,19 +28,19 @@ function describeLiveEvent(event: QuizWsEvent | null): string {
   }
   switch (event.type) {
     case "session_joined":
-      return `${event.payload.nickname}님이 퀴즈방에 들어왔습니다. (함께하는 인원 약 ${event.payload.participant_count}명)`;
+      return `${coerceRenderableText(event.payload.nickname) || "참여자"}님이 퀴즈방에 들어왔습니다. (함께하는 인원 약 ${event.payload.participant_count}명)`;
     case "quiz_started":
       return "새 문항이 시작되었습니다. 수강생 화면에 문제가 열렸는지 확인하세요.";
     case "answer_update":
       return `응답 현황: ${event.payload.answered}/${event.payload.total}명 제출 (${Math.round(event.payload.rate)}%).`;
     case "participant_answer":
-      return `${event.payload.nickname}님이 현재 문항 답안을 ${event.payload.submitted ? "제출했습니다" : "취소/대기 상태입니다"}.`;
+      return `${coerceRenderableText(event.payload.nickname) || "참여자"}님이 현재 문항 답안을 ${event.payload.submitted ? "제출했습니다" : "취소/대기 상태입니다"}.`;
     case "answer_revealed":
       return "정답이 공개되었습니다.";
     case "session_ended":
       return "이번 라이브 퀴즈가 종료되었습니다.";
     case "error":
-      return `알림: ${event.payload.message}`;
+      return `알림: ${coerceRenderableText(event.payload.message)}`;
     default:
       return "새로운 활동이 감지되었습니다.";
   }

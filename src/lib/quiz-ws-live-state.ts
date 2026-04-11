@@ -1,3 +1,5 @@
+import { coerceOptionText, coerceQuestionText, coerceRenderableText } from "@/lib/normalize-quiz-shape";
+
 export type QuizWsEvent =
   | { type: "session_joined"; payload: { participant_count: number; nickname: string } }
   | {
@@ -122,33 +124,34 @@ export const tryParseQuizWsEvent = (raw: unknown): QuizWsEvent | null => {
   }
   switch (t) {
     case "session_joined": {
-      const pl = p as { participant_count?: number; nickname?: string };
-      if (typeof pl.participant_count !== "number" || typeof pl.nickname !== "string") {
+      const pl = p as { participant_count?: number; nickname?: unknown };
+      if (typeof pl.participant_count !== "number") {
         return null;
       }
-      return { type: "session_joined", payload: { participant_count: pl.participant_count, nickname: pl.nickname } };
+      const nickname = coerceRenderableText(pl.nickname).trim() || "참여자";
+      return { type: "session_joined", payload: { participant_count: pl.participant_count, nickname } };
     }
     case "quiz_started": {
       const pl = p as {
         quiz_id?: string;
-        question?: string;
-        options?: string[];
+        question?: unknown;
+        options?: unknown;
         time_limit?: number;
       };
-      if (
-        typeof pl.quiz_id !== "string" ||
-        typeof pl.question !== "string" ||
-        !Array.isArray(pl.options) ||
-        typeof pl.time_limit !== "number"
-      ) {
+      if (typeof pl.quiz_id !== "string" || typeof pl.time_limit !== "number" || !Array.isArray(pl.options)) {
+        return null;
+      }
+      const question = coerceQuestionText(pl.question);
+      const options = pl.options.map(coerceOptionText);
+      if (options.length === 0) {
         return null;
       }
       return {
         type: "quiz_started",
         payload: {
           quiz_id: pl.quiz_id,
-          question: pl.question,
-          options: pl.options as string[],
+          question,
+          options,
           time_limit: pl.time_limit,
         },
       };
@@ -179,20 +182,25 @@ export const tryParseQuizWsEvent = (raw: unknown): QuizWsEvent | null => {
       };
     }
     case "participant_answer": {
-      const pl = p as { nickname?: string; quiz_id?: string; submitted?: boolean };
-      if (typeof pl.nickname !== "string" || typeof pl.quiz_id !== "string" || typeof pl.submitted !== "boolean") {
+      const pl = p as { nickname?: unknown; quiz_id?: string; submitted?: boolean };
+      if (typeof pl.quiz_id !== "string" || typeof pl.submitted !== "boolean") {
         return null;
       }
-      return { type: "participant_answer", payload: { nickname: pl.nickname, quiz_id: pl.quiz_id, submitted: pl.submitted } };
+      const nickname = coerceRenderableText(pl.nickname).trim() || "참여자";
+      return { type: "participant_answer", payload: { nickname, quiz_id: pl.quiz_id, submitted: pl.submitted } };
     }
     case "answer_revealed": {
-      const pl = p as { correct_option?: number; explanation?: string | null };
+      const pl = p as { correct_option?: number; explanation?: unknown };
       if (typeof pl.correct_option !== "number") {
         return null;
       }
+      const explanation =
+        pl.explanation === null || pl.explanation === undefined
+          ? null
+          : coerceRenderableText(pl.explanation) || null;
       return {
         type: "answer_revealed",
-        payload: { correct_option: pl.correct_option, explanation: pl.explanation ?? null },
+        payload: { correct_option: pl.correct_option, explanation },
       };
     }
     case "session_ended": {
@@ -203,11 +211,9 @@ export const tryParseQuizWsEvent = (raw: unknown): QuizWsEvent | null => {
       return { type: "session_ended", payload: { session_id: pl.session_id } };
     }
     case "error": {
-      const pl = p as { message?: string };
-      if (typeof pl.message !== "string") {
-        return null;
-      }
-      return { type: "error", payload: { message: pl.message } };
+      const pl = p as { message?: unknown };
+      const message = coerceRenderableText(pl.message).trim() || "오류가 발생했습니다.";
+      return { type: "error", payload: { message } };
     }
     default:
       return null;

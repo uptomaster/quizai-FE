@@ -72,6 +72,8 @@ export interface GenerateQuizResponse {
 export interface UploadLectureRequest {
   file: File;
   title: string;
+  /** 기존 강의에 자료만 추가할 때(백엔드가 지원하는 경우). */
+  lectureId?: string;
 }
 
 export interface Session {

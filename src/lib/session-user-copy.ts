@@ -1,3 +1,4 @@
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import type { UserRole } from "@/types/api";
 
 /** 수강생·강사 화면에 노출할 실시간 연결 상태 (기술 용어 대체). */
@@ -23,7 +24,10 @@ export const liveRoomPhaseLabel = (apiStatus: string | undefined): string => {
 };
 
 /** 결과 화면 등에서 성적 등급 표시용. */
-export const gradeLabelKo = (grade: string): string => {
+export const gradeLabelKo = (grade: unknown): string => {
+  if (typeof grade !== "string") {
+    return coerceRenderableText(grade) || "—";
+  }
   switch (grade) {
     case "excellent":
       return "우수";

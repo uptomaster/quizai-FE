@@ -12,6 +12,7 @@ import { StatTile } from "@/components/common/stat-tile";
 import { useSessionResultQuery } from "@/hooks/api/use-session-result-query";
 import { useStudentQuizResultsQuery } from "@/hooks/api/use-student-quiz-results-query";
 import { getStoredUser } from "@/lib/auth-storage";
+import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { gradeLabelKo } from "@/lib/session-user-copy";
 import { cn } from "@/lib/utils";
 
@@ -126,7 +127,9 @@ function StudentDashboardInner() {
                         : "border-border/60 bg-card hover:border-primary/35 hover:shadow-[0_8px_24px_-10px_rgba(15,23,42,0.1)]",
                     )}
                   >
-                    <p className="font-semibold text-foreground">{row.title ?? "라이브 퀴즈"}</p>
+                    <p className="font-semibold text-foreground">
+                      {coerceRenderableText(row.title) || "라이브 퀴즈"}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {row.attended_at ? <span>{new Date(row.attended_at).toLocaleString()}</span> : null}
                       {typeof row.my_score === "number" ? (
