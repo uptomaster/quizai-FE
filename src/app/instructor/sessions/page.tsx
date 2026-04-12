@@ -32,7 +32,7 @@ import { readLastQuizSet, type LastQuizSetInfo } from "@/lib/last-quiz-set";
 import type { QuizWsEvent } from "@/lib/quiz-ws-live-state";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { liveRoomPhaseLabel } from "@/lib/session-user-copy";
-import { cn } from "@/lib/utils";
+import { cn, formatAverageScoreOneDecimal, formatQuizScorePoints, toFiniteNumber } from "@/lib/utils";
 import { sessionService } from "@/services/session-service";
 import type { QuizQuestion, Session, SessionResult, StartSessionRequest } from "@/types/api";
 
@@ -663,18 +663,35 @@ function InstructorSessionsPageInner() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <p className="text-xs text-muted-foreground">참여 인원</p>
-                    <p className="mt-0.5 text-lg font-semibold">{sessionResult.total_students}</p>
+                    <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                      {toFiniteNumber(sessionResult.total_students) !== null
+                        ? Math.round(toFiniteNumber(sessionResult.total_students)!)
+                        : "—"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">평균 점수</p>
-                    <p className="mt-0.5 text-lg font-semibold">{Math.round(sessionResult.avg_score * 10) / 10}</p>
+                    <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                      {formatAverageScoreOneDecimal(sessionResult.avg_score)}
+                      {toFiniteNumber(sessionResult.avg_score) !== null ? "점" : ""}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">등급 분포</p>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      우수 {sessionResult.grade_distribution.excellent} · 보통{" "}
-                      {sessionResult.grade_distribution.needs_practice} · 보완{" "}
-                      {sessionResult.grade_distribution.needs_review}
+                      {(() => {
+                        const g = sessionResult.grade_distribution;
+                        if (!g) {
+                          return "집계 없음";
+                        }
+                        const ex = toFiniteNumber(g.excellent);
+                        const mid = toFiniteNumber(g.needs_practice);
+                        const low = toFiniteNumber(g.needs_review);
+                        if (ex === null && mid === null && low === null) {
+                          return "집계 없음";
+                        }
+                        return `우수 ${ex ?? "—"} · 보통 ${mid ?? "—"} · 보완 ${low ?? "—"}`;
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -692,7 +709,7 @@ function InstructorSessionsPageInner() {
                         {sessionResult.students.map((s) => (
                           <tr key={s.student_id} className="border-t border-border/60">
                             <td className="px-3 py-2 font-medium">{s.nickname}</td>
-                            <td className="px-3 py-2 tabular-nums">{s.score}</td>
+                            <td className="px-3 py-2 tabular-nums">{formatQuizScorePoints(s.score)}</td>
                             <td className="px-3 py-2 text-muted-foreground">{s.grade}</td>
                           </tr>
                         ))}
@@ -700,7 +717,12 @@ function InstructorSessionsPageInner() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">아직 학생별 결과 행이 없습니다.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {toFiniteNumber(sessionResult.total_students) !== null &&
+                    toFiniteNumber(sessionResult.total_students)! > 0
+                      ? "참여 인원은 있는데 students 배열이 비어 있습니다. 백엔드 GET /sessions/{id}/result 응답을 확인해 주세요."
+                      : "아직 학생별 결과 행이 없습니다."}
+                  </p>
                 )}
               </div>
             ) : null}

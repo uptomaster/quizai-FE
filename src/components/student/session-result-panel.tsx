@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
 import { gradeLabelKo } from "@/lib/session-user-copy";
-import { cn } from "@/lib/utils";
+import { cn, formatQuizScorePoints, toFiniteNumber } from "@/lib/utils";
 import type { SessionResult } from "@/types/api";
 
 interface SessionResultPanelProps {
@@ -28,7 +28,11 @@ export function SessionResultPanel({
       return [];
     }
     const rows = result.students ?? [];
-    return [...rows].sort((a, b) => b.score - a.score);
+    return [...rows].sort((a, b) => {
+      const sa = toFiniteNumber(a.score) ?? -1;
+      const sb = toFiniteNumber(b.score) ?? -1;
+      return sb - sa;
+    });
   }, [result]);
 
   const weakConcepts = result?.weak_concepts ?? [];
@@ -60,13 +64,17 @@ export function SessionResultPanel({
         <Card className="border-border/80 bg-gradient-to-br from-card to-primary/[0.04] shadow-sm">
           <CardContent className="pt-6">
             <p className="text-xs font-medium text-muted-foreground">이 퀴즈 평균</p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight">{Math.round(result.avg_score)}점</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatQuizScorePoints(result.avg_score)}</p>
           </CardContent>
         </Card>
         <Card className="border-border/80 shadow-sm">
           <CardContent className="pt-6">
             <p className="text-xs font-medium text-muted-foreground">참여 인원</p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight">{result.total_students}명</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">
+              {toFiniteNumber(result.total_students) !== null
+                ? `${Math.round(toFiniteNumber(result.total_students)!)}명`
+                : "—"}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border/80 shadow-sm">
@@ -124,7 +132,7 @@ export function SessionResultPanel({
                   {gradeLabelKo(student.grade)}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">점수 {student.score}점</p>
+              <p className="mt-1 text-sm text-muted-foreground">점수 {formatQuizScorePoints(student.score)}</p>
             </article>
           );
         })}

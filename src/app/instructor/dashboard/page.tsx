@@ -1,11 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { FlowPageHeader } from "@/components/common/flow-page-header";
 import { InstructorFlowRail } from "@/components/instructor/instructor-flow-rail";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/common/stat-tile";
 import { useInstructorDashboardQuery } from "@/hooks/api/use-instructor-dashboard-query";
 import { getStoredUser } from "@/lib/auth-storage";
+import { cn, formatQuizScorePoints, toFiniteNumber } from "@/lib/utils";
 
 export default function InstructorDashboardPage() {
   const dashboardQuery = useInstructorDashboardQuery();
@@ -13,6 +16,33 @@ export default function InstructorDashboardPage() {
   const recent = data?.recent_sessions ?? [];
   const user = getStoredUser();
   const greetingName = user?.name?.trim() || user?.email?.split("@")[0] || "선생님";
+
+  const rateSummary = useMemo(() => {
+    if (!data) {
+      return "…";
+    }
+    const p = toFiniteNumber(data.avg_participation_rate);
+    const c = toFiniteNumber(data.avg_correct_rate);
+    const pStr = p !== null ? `${Math.round(p)}` : "—";
+    const cStr = c !== null ? `${Math.round(c)}` : "—";
+    return `참여 ${pStr}% · 정답 ${cStr}%`;
+  }, [data]);
+
+  const participationPct = useMemo(() => {
+    if (dashboardQuery.isLoading) {
+      return "…";
+    }
+    const v = toFiniteNumber(data?.avg_participation_rate);
+    return v !== null ? `${Math.round(v)}%` : "—";
+  }, [dashboardQuery.isLoading, data?.avg_participation_rate]);
+
+  const correctPct = useMemo(() => {
+    if (dashboardQuery.isLoading) {
+      return "…";
+    }
+    const v = toFiniteNumber(data?.avg_correct_rate);
+    return v !== null ? `${Math.round(v)}%` : "—";
+  }, [dashboardQuery.isLoading, data?.avg_correct_rate]);
 
   return (
     <section className="space-y-6">
@@ -24,7 +54,7 @@ export default function InstructorDashboardPage() {
             ? "…"
             : dashboardQuery.isError
               ? "불러오기 실패"
-              : `참여 ${Math.round(data?.avg_participation_rate ?? 0)}% · 정답 ${Math.round(data?.avg_correct_rate ?? 0)}%`
+              : rateSummary
         }
         actions={
           <>
@@ -41,18 +71,8 @@ export default function InstructorDashboardPage() {
           description="누적 횟수"
           value={dashboardQuery.isLoading ? "…" : String(data?.total_sessions ?? 0)}
         />
-        <StatTile
-          title="평균 참여율"
-          description="학생 참여 비율"
-          value={
-            dashboardQuery.isLoading ? "…" : `${Math.round(data?.avg_participation_rate ?? 0)}%`
-          }
-        />
-        <StatTile
-          title="평균 정답률"
-          description="문항별 정답 비율"
-          value={dashboardQuery.isLoading ? "…" : `${Math.round(data?.avg_correct_rate ?? 0)}%`}
-        />
+        <StatTile title="평균 참여율" description="학생 참여 비율" value={participationPct} />
+        <StatTile title="평균 정답률" description="문항별 정답 비율" value={correctPct} />
       </div>
       <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
         <p className="text-sm font-semibold">최근 라이브 세션</p>
@@ -60,20 +80,30 @@ export default function InstructorDashboardPage() {
           {dashboardQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">불러오는 중…</p>
           ) : recent.length > 0 ? (
-            recent.slice(0, 6).map((session) => (
-              <div key={session.session_id}>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span>{session.lecture_title}</span>
-                  <span>{Math.round(session.avg_score)}점</span>
+            recent.slice(0, 6).map((session) => {
+              const title = session.lecture_title?.trim() || "제목 없는 세션";
+              const score = toFiniteNumber(session.avg_score);
+              const barPct = score === null ? 0 : Math.min(100, Math.max(0, score));
+              return (
+                <div key={session.session_id}>
+                  <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 truncate text-muted-foreground" title={session.session_id}>
+                      {title}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-foreground">{formatQuizScorePoints(session.avg_score)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full bg-gradient-to-r from-primary to-violet-500",
+                        score === null && "opacity-40",
+                      )}
+                      style={{ width: `${barPct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500"
-                    style={{ width: `${Math.min(100, Math.max(0, session.avg_score))}%` }}
-                  />
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="text-sm text-muted-foreground">아직 기록된 라이브 세션이 없습니다.</p>
           )}
