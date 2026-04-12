@@ -31,6 +31,10 @@ import {
 import { readLastQuizSet, type LastQuizSetInfo } from "@/lib/last-quiz-set";
 import type { QuizWsEvent } from "@/lib/quiz-ws-live-state";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
+import {
+  isSessionResultVacantShell,
+  sessionResultMissingDetailRows,
+} from "@/lib/session-result-vacancy";
 import { liveRoomPhaseLabel } from "@/lib/session-user-copy";
 import { cn, formatAverageScoreOneDecimal, formatQuizScorePoints, toFiniteNumber } from "@/lib/utils";
 import { sessionService } from "@/services/session-service";
@@ -293,7 +297,15 @@ function InstructorSessionsPageInner() {
     try {
       const data = await sessionService.getResult(session.session_id);
       setSessionResult(data);
-      toast.success("세션 결과를 불러왔습니다.");
+      if (isSessionResultVacantShell(data)) {
+        toast.warning(
+          "집계 결과가 비어 있습니다. 세션이 종료·정산됐는지 백엔드를 확인하거나, 잠시 뒤 다시 불러오기를 눌러 주세요.",
+        );
+      } else if (sessionResultMissingDetailRows(data)) {
+        toast.info("요약 인원만 있고 학생별 행이 없습니다. API 응답의 students 배열을 확인해 주세요.");
+      } else {
+        toast.success("세션 결과를 불러왔습니다.");
+      }
     } catch {
       setSessionResultError("결과를 불러오지 못했습니다. 세션이 종료됐는지 확인해 주세요.");
       toast.error("세션 결과 요청에 실패했습니다.");
@@ -660,41 +672,63 @@ function InstructorSessionsPageInner() {
             ) : null}
             {sessionResult ? (
               <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 text-sm">
+                {isSessionResultVacantShell(sessionResult) ? (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:text-amber-50">
+                    <p className="font-semibold">공식 집계가 아직 비어 있습니다.</p>
+                    <p className="mt-1 text-muted-foreground dark:text-amber-100/90">
+                      학생이 제출했어도 세션 종료·채점 배치가 끝나기 전이면 0으로 올 수 있습니다. 백엔드에서{" "}
+                      <code className="rounded bg-background/60 px-1 font-mono text-[10px]">GET /sessions/…/result</code>{" "}
+                      가 제출 데이터를 묶는지 확인해 주세요.
+                    </p>
+                  </div>
+                ) : null}
+                {(() => {
+                  const vacant = isSessionResultVacantShell(sessionResult);
+                  return (
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <p className="text-xs text-muted-foreground">참여 인원</p>
                     <p className="mt-0.5 text-lg font-semibold tabular-nums">
-                      {toFiniteNumber(sessionResult.total_students) !== null
-                        ? Math.round(toFiniteNumber(sessionResult.total_students)!)
-                        : "—"}
+                      {vacant
+                        ? "—"
+                        : toFiniteNumber(sessionResult.total_students) !== null
+                          ? Math.round(toFiniteNumber(sessionResult.total_students)!)
+                          : "—"}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">평균 점수</p>
                     <p className="mt-0.5 text-lg font-semibold tabular-nums">
-                      {formatAverageScoreOneDecimal(sessionResult.avg_score)}
-                      {toFiniteNumber(sessionResult.avg_score) !== null ? "점" : ""}
+                      {vacant
+                        ? "—"
+                        : `${formatAverageScoreOneDecimal(sessionResult.avg_score)}${
+                            toFiniteNumber(sessionResult.avg_score) !== null ? "점" : ""
+                          }`}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">등급 분포</p>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      {(() => {
-                        const g = sessionResult.grade_distribution;
-                        if (!g) {
-                          return "집계 없음";
-                        }
-                        const ex = toFiniteNumber(g.excellent);
-                        const mid = toFiniteNumber(g.needs_practice);
-                        const low = toFiniteNumber(g.needs_review);
-                        if (ex === null && mid === null && low === null) {
-                          return "집계 없음";
-                        }
-                        return `우수 ${ex ?? "—"} · 보통 ${mid ?? "—"} · 보완 ${low ?? "—"}`;
-                      })()}
+                      {vacant
+                        ? "집계 없음"
+                        : (() => {
+                            const g = sessionResult.grade_distribution;
+                            if (!g) {
+                              return "집계 없음";
+                            }
+                            const ex = toFiniteNumber(g.excellent);
+                            const mid = toFiniteNumber(g.needs_practice);
+                            const low = toFiniteNumber(g.needs_review);
+                            if (ex === null && mid === null && low === null) {
+                              return "집계 없음";
+                            }
+                            return `우수 ${ex ?? "—"} · 보통 ${mid ?? "—"} · 보완 ${low ?? "—"}`;
+                          })()}
                     </p>
                   </div>
                 </div>
+                  );
+                })()}
                 {sessionResult.students.length > 0 ? (
                   <div className="max-h-56 overflow-auto rounded-lg border border-border">
                     <table className="w-full text-left text-xs">
@@ -717,12 +751,30 @@ function InstructorSessionsPageInner() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {toFiniteNumber(sessionResult.total_students) !== null &&
-                    toFiniteNumber(sessionResult.total_students)! > 0
-                      ? "참여 인원은 있는데 students 배열이 비어 있습니다. 백엔드 GET /sessions/{id}/result 응답을 확인해 주세요."
-                      : "아직 학생별 결과 행이 없습니다."}
-                  </p>
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      {sessionResultMissingDetailRows(sessionResult)
+                        ? "참여 인원은 있는데 students 배열이 비어 있습니다. 백엔드 GET /sessions/{id}/result 응답을 확인해 주세요."
+                        : isSessionResultVacantShell(sessionResult)
+                          ? "학생별 점수 행이 없습니다. (위 안내 참고)"
+                          : "아직 학생별 결과 행이 없습니다."}
+                    </p>
+                    {isSessionResultVacantShell(sessionResult) && mergedLiveSession.participants.length > 0 ? (
+                      <div className="rounded-lg border border-border bg-card/80 p-3">
+                        <p className="mb-2 text-xs font-medium text-foreground">
+                          실시간 방에서 잡힌 참가자 (공식 점수와 다를 수 있음)
+                        </p>
+                        <ul className="max-h-40 space-y-1 overflow-auto text-xs text-muted-foreground">
+                          {mergedLiveSession.participants.map((p, i) => (
+                            <li key={`${p.userId ?? p.nickname}-${i}`}>
+                              · {coerceRenderableText(p.nickname) || "—"}
+                              {p.role ? ` (${p.role})` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
                 )}
               </div>
             ) : null}
