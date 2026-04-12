@@ -1,6 +1,16 @@
 "use client";
 
-import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  Fragment,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -21,6 +31,7 @@ import { getInstructorQuizHistoryByQuizSetId } from "@/lib/instructor-quiz-histo
 import {
   clearPersistedInstructorLiveSession,
   readPersistedInstructorLiveSession,
+  withInstructorSessionWsFallback,
   writePersistedInstructorLiveSession,
 } from "@/lib/instructor-live-session";
 import {
@@ -38,7 +49,43 @@ import {
 import { liveRoomPhaseLabel } from "@/lib/session-user-copy";
 import { cn, formatAverageScoreOneDecimal, formatQuizScorePoints, toFiniteNumber } from "@/lib/utils";
 import { sessionService } from "@/services/session-service";
-import type { QuizQuestion, Session, SessionResult, StartSessionRequest } from "@/types/api";
+import type {
+  QuizQuestion,
+  Session,
+  SessionResult,
+  SessionStudentResult,
+  StartSessionRequest,
+} from "@/types/api";
+
+function sessionStudentGradeLabel(grade: SessionStudentResult["grade"]): string {
+  switch (grade) {
+    case "excellent":
+      return "우수";
+    case "needs_practice":
+      return "보통";
+    case "needs_review":
+      return "보완";
+    default:
+      return grade;
+  }
+}
+
+function optionLetter(index: number): string {
+  if (index >= 0 && index < 26) {
+    return String.fromCharCode(65 + index);
+  }
+  return String(index + 1);
+}
+
+function formatAnswerChoiceLabel(index: number, options: string[] | undefined): string {
+  const letter = optionLetter(index);
+  const raw = options?.[index]?.trim();
+  if (!raw) {
+    return `${letter}번`;
+  }
+  const short = raw.length > 48 ? `${raw.slice(0, 48)}…` : raw;
+  return `${letter} · ${short}`;
+}
 
 function describeLiveEvent(event: QuizWsEvent | null): string {
   if (!event) {
@@ -81,27 +128,62 @@ function InstructorSessionsPageInner() {
   /** useMemo만 쓰면 하이드레이션 직후 localStorage 미반영으로 빈 배열이 고정될 수 있어 effect로 동기화 */
   const [localQuestions, setLocalQuestions] = useState<QuizQuestion[]>([]);
   const startSessionMutation = useStartSessionMutation();
+  /** false면 대시보드 등에서 과거 session_id만으로 연 경우 — 로컬에 남은 진행 중 방을 덮어쓰지 않음 */
+  const [shouldPersistLiveSession, setShouldPersistLiveSession] = useState(true);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const stored = readLastQuizSet();
     setLastQuizHint(stored);
-    const fromUrl = searchParams.get("quiz_set_id")?.trim();
+    const fromUrlQuizSet = searchParams.get("quiz_set_id")?.trim() ?? "";
+    const sessionFromUrl = searchParams.get("session")?.trim() ?? "";
     const persisted = readPersistedInstructorLiveSession();
+    const persistedId = persisted?.session?.session_id?.trim() ?? "";
+
+    const openAsHistoryOnly =
+      Boolean(sessionFromUrl) && (persistedId.length === 0 || sessionFromUrl !== persistedId);
+
+    if (openAsHistoryOnly) {
+      setShouldPersistLiveSession(false);
+      setSessionResult(null);
+      setSessionResultError(null);
+      setSession(
+        withInstructorSessionWsFallback({
+          session_id: sessionFromUrl,
+          session_code: "이전 세션",
+          status: "ended",
+          ws_url: "",
+        }),
+      );
+      if (fromUrlQuizSet) {
+        setQuizSetId(fromUrlQuizSet);
+        setUseCustomQuizSetId(false);
+      } else if (stored?.quizSetId) {
+        setQuizSetId(stored.quizSetId);
+        setUseCustomQuizSetId(false);
+      } else {
+        setQuizSetId("");
+        setUseCustomQuizSetId(true);
+      }
+      setTimeLimit("30");
+      return;
+    }
+
+    setShouldPersistLiveSession(true);
 
     if (persisted?.session) {
-      setSession(persisted.session);
+      setSession(withInstructorSessionWsFallback(persisted.session));
       setQuizSetId(persisted.quizSetId);
       setTimeLimit(persisted.timeLimit);
       setUseCustomQuizSetId(persisted.useCustomQuizSetId);
-      if (fromUrl) {
-        setQuizSetId(fromUrl);
+      if (fromUrlQuizSet) {
+        setQuizSetId(fromUrlQuizSet);
         setUseCustomQuizSetId(false);
       }
       return;
     }
 
-    if (fromUrl) {
-      setQuizSetId(fromUrl);
+    if (fromUrlQuizSet) {
+      setQuizSetId(fromUrlQuizSet);
       setUseCustomQuizSetId(false);
       return;
     }
@@ -112,7 +194,7 @@ function InstructorSessionsPageInner() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!session?.session_id) {
+    if (!shouldPersistLiveSession || !session?.session_id) {
       return;
     }
     writePersistedInstructorLiveSession({
@@ -121,7 +203,7 @@ function InstructorSessionsPageInner() {
       timeLimit,
       useCustomQuizSetId,
     });
-  }, [session, quizSetId, timeLimit, useCustomQuizSetId]);
+  }, [shouldPersistLiveSession, session, quizSetId, timeLimit, useCustomQuizSetId]);
 
   const showQuizSummary =
     Boolean(lastQuizHint) &&
@@ -137,7 +219,7 @@ function InstructorSessionsPageInner() {
   const socket = useQuizSocket({
     sessionId,
     directWsUrl: session?.ws_url,
-    enabled: Boolean(session?.session_id),
+    enabled: Boolean(session?.session_id) && shouldPersistLiveSession,
     nickname: user?.name ?? "instructor",
     token: accessToken ?? undefined,
     debugLabel: "instructor",
@@ -177,6 +259,8 @@ function InstructorSessionsPageInner() {
       options: Array.isArray(q.options) ? q.options : [],
       time_limit: timeLimitSec,
       startedAt: localRoundStartedAt,
+      question_index: localRoundIndex,
+      question_total: localQuestions.length,
     };
   }, [active, localRoundIndex, localQuestions, localRoundStartedAt, timeLimitSec]);
 
@@ -186,7 +270,7 @@ function InstructorSessionsPageInner() {
 
   /** 같은 PC 수강생 탭과 문항 동기화(늦게 연 탭은 `request_sync` 로 재요청). */
   useEffect(() => {
-    if (!sessionId || typeof BroadcastChannel === "undefined") {
+    if (!sessionId || typeof BroadcastChannel === "undefined" || !shouldPersistLiveSession) {
       return;
     }
     const bc = new BroadcastChannel(liveQuizBroadcastChannelId(sessionId));
@@ -201,6 +285,8 @@ function InstructorSessionsPageInner() {
               options: dq.options,
               time_limit: dq.time_limit,
               startedAt: dq.startedAt,
+              ...(typeof dq.question_index === "number" ? { question_index: dq.question_index } : {}),
+              ...(typeof dq.question_total === "number" ? { question_total: dq.question_total } : {}),
             },
           }
         : { activeQuiz: null };
@@ -219,7 +305,7 @@ function InstructorSessionsPageInner() {
       bc.removeEventListener("message", onMessage);
       bc.close();
     };
-  }, [sessionId]);
+  }, [sessionId, shouldPersistLiveSession]);
 
   useEffect(() => {
     const ch = liveBroadcastRef.current;
@@ -235,6 +321,8 @@ function InstructorSessionsPageInner() {
             options: dq.options,
             time_limit: dq.time_limit,
             startedAt: dq.startedAt,
+            ...(typeof dq.question_index === "number" ? { question_index: dq.question_index } : {}),
+            ...(typeof dq.question_total === "number" ? { question_total: dq.question_total } : {}),
           },
         }
       : { activeQuiz: null };
@@ -287,8 +375,22 @@ function InstructorSessionsPageInner() {
   const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
   const [sessionResultLoading, setSessionResultLoading] = useState(false);
   const [sessionResultError, setSessionResultError] = useState<string | null>(null);
+  const [expandedSessionStudentId, setExpandedSessionStudentId] = useState<string | null>(null);
 
-  const loadSessionResult = useCallback(async () => {
+  const quizQuestionMetaById = useMemo(() => {
+    const map = new Map<string, { question: string; options: string[] }>();
+    const id = quizSetId.trim();
+    if (!id) {
+      return map;
+    }
+    const entry = getInstructorQuizHistoryByQuizSetId(id);
+    for (const q of entry?.questions ?? []) {
+      map.set(q.id, { question: q.question, options: Array.isArray(q.options) ? q.options : [] });
+    }
+    return map;
+  }, [quizSetId]);
+
+  const loadSessionResult = useCallback(async (options?: { silent?: boolean }) => {
     if (!session?.session_id) {
       return;
     }
@@ -303,7 +405,7 @@ function InstructorSessionsPageInner() {
         );
       } else if (sessionResultMissingDetailRows(data)) {
         toast.info("요약 인원만 있고 학생별 행이 없습니다. API 응답의 students 배열을 확인해 주세요.");
-      } else {
+      } else if (!options?.silent) {
         toast.success("세션 결과를 불러왔습니다.");
       }
     } catch {
@@ -313,6 +415,13 @@ function InstructorSessionsPageInner() {
       setSessionResultLoading(false);
     }
   }, [session?.session_id]);
+
+  useEffect(() => {
+    if (shouldPersistLiveSession || !session?.session_id) {
+      return;
+    }
+    void loadSessionResult({ silent: true });
+  }, [shouldPersistLiveSession, session?.session_id, loadSessionResult]);
 
   const handleStartSession = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -325,9 +434,10 @@ function InstructorSessionsPageInner() {
       const startedSession = await startSessionMutation.mutateAsync(payload);
       setSessionResult(null);
       setSessionResultError(null);
-      setSession(startedSession);
+      setShouldPersistLiveSession(true);
+      setSession(withInstructorSessionWsFallback(startedSession));
       writePersistedInstructorLiveSession({
-        session: startedSession,
+        session: withInstructorSessionWsFallback(startedSession),
         quizSetId,
         timeLimit,
         useCustomQuizSetId,
@@ -339,13 +449,21 @@ function InstructorSessionsPageInner() {
   };
 
   const handleEndLiveSession = () => {
-    clearPersistedInstructorLiveSession();
+    const wasPersistedLive = shouldPersistLiveSession;
+    setShouldPersistLiveSession(true);
+    if (wasPersistedLive) {
+      clearPersistedInstructorLiveSession();
+    }
     setSession(null);
     setSessionResult(null);
     setSessionResultError(null);
     setLocalRoundIndex(-1);
     setLocalRoundStartedAt(null);
-    toast.success("저장된 퀴즈방을 지웠어요. 새 참여코드로 다시 열 수 있어요.");
+    toast.success(
+      wasPersistedLive
+        ? "저장된 퀴즈방을 지웠어요. 새 참여코드로 다시 열 수 있어요."
+        : "과거 세션 조회를 닫았어요. 로컬에 남아 있던 진행 중 방은 그대로입니다.",
+    );
   };
 
   const handleCopyJoinCode = async () => {
@@ -398,6 +516,12 @@ function InstructorSessionsPageInner() {
   return (
     <section className="space-y-6">
       <FlowPageHeader rail={<InstructorFlowRail />} title="라이브 방" description="방을 열면 참여 코드가 나와요." />
+
+      {!shouldPersistLiveSession ? (
+        <p className="rounded-xl border border-border/80 bg-muted/35 px-4 py-2.5 text-sm text-muted-foreground">
+          대시보드에서 고른 과거 세션만 보고 있어요. 브라우저에 남아 있는 진행 중 퀴즈방 저장은 덮어쓰지 않습니다.
+        </p>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -663,7 +787,12 @@ function InstructorSessionsPageInner() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={loadSessionResult} disabled={sessionResultLoading}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void loadSessionResult()}
+                disabled={sessionResultLoading}
+              >
                 {sessionResultLoading ? "불러오는 중…" : "결과 불러오기"}
               </Button>
             </div>
@@ -730,23 +859,93 @@ function InstructorSessionsPageInner() {
                   );
                 })()}
                 {sessionResult.students.length > 0 ? (
-                  <div className="max-h-56 overflow-auto rounded-lg border border-border">
+                  <div className="max-h-72 overflow-auto rounded-lg border border-border">
                     <table className="w-full text-left text-xs">
                       <thead className="sticky top-0 bg-muted/90">
                         <tr>
                           <th className="px-3 py-2">닉네임</th>
                           <th className="px-3 py-2">점수</th>
                           <th className="px-3 py-2">등급</th>
+                          <th className="px-3 py-2 w-24">문항</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {sessionResult.students.map((s) => (
-                          <tr key={s.student_id} className="border-t border-border/60">
-                            <td className="px-3 py-2 font-medium">{s.nickname}</td>
-                            <td className="px-3 py-2 tabular-nums">{formatQuizScorePoints(s.score)}</td>
-                            <td className="px-3 py-2 text-muted-foreground">{s.grade}</td>
-                          </tr>
-                        ))}
+                        {sessionResult.students.map((s) => {
+                          const open = expandedSessionStudentId === s.student_id;
+                          const answers = Array.isArray(s.answers) ? s.answers : [];
+                          return (
+                            <Fragment key={s.student_id}>
+                              <tr className="border-t border-border/60">
+                                <td className="px-3 py-2 font-medium">{s.nickname}</td>
+                                <td className="px-3 py-2 tabular-nums">{formatQuizScorePoints(s.score)}</td>
+                                <td className="px-3 py-2 text-muted-foreground">{sessionStudentGradeLabel(s.grade)}</td>
+                                <td className="px-3 py-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-[11px]"
+                                    onClick={() =>
+                                      setExpandedSessionStudentId((prev) => (prev === s.student_id ? null : s.student_id))
+                                    }
+                                  >
+                                    {open ? "접기" : "보기"}
+                                  </Button>
+                                </td>
+                              </tr>
+                              {open ? (
+                                <tr className="border-t border-border/40 bg-muted/25">
+                                  <td colSpan={4} className="px-3 py-3">
+                                    {answers.length === 0 ? (
+                                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                        문항별 정오답 배열(
+                                        <code className="rounded bg-background/70 px-1 font-mono text-[10px]">answers</code>
+                                        )가 응답에 없습니다. 백엔드{" "}
+                                        <code className="rounded bg-background/70 px-1 font-mono text-[10px]">
+                                          GET /sessions/…/result
+                                        </code>{" "}
+                                        에 학생별 문항 결과를 포함해 주세요.
+                                      </p>
+                                    ) : (
+                                      <ul className="space-y-2">
+                                        {answers.map((a) => {
+                                          const meta = quizQuestionMetaById.get(a.quiz_id);
+                                          const title = meta?.question?.trim()
+                                            ? meta.question.length > 72
+                                              ? `${meta.question.slice(0, 72)}…`
+                                              : meta.question
+                                            : `문항 ${a.quiz_id.slice(0, 8)}…`;
+                                          return (
+                                            <li
+                                              key={`${s.student_id}-${a.quiz_id}`}
+                                              className="rounded-lg border border-border/70 bg-background/80 px-2.5 py-2"
+                                            >
+                                              <p className="text-[11px] font-medium text-foreground">{title}</p>
+                                              <p className="mt-1 text-[11px] text-muted-foreground">
+                                                선택{" "}
+                                                <span className="font-mono text-foreground">
+                                                  {formatAnswerChoiceLabel(a.selected_option, meta?.options)}
+                                                </span>
+                                                <span className="mx-1.5 text-border">·</span>
+                                                <span
+                                                  className={
+                                                    a.is_correct ? "font-medium text-emerald-700 dark:text-emerald-400" : "font-medium text-destructive"
+                                                  }
+                                                >
+                                                  {a.is_correct ? "정답" : "오답"}
+                                                </span>
+                                              </p>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

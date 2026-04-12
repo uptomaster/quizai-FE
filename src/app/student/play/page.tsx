@@ -92,6 +92,8 @@ function StudentPlayContent() {
         options: Array.isArray(q.options) ? q.options : [],
         time_limit: typeof q.time_limit === "number" ? q.time_limit : 30,
         startedAt: typeof q.startedAt === "number" ? q.startedAt : Date.now(),
+        ...(typeof q.question_index === "number" ? { question_index: q.question_index } : {}),
+        ...(typeof q.question_total === "number" ? { question_total: q.question_total } : {}),
       });
     };
     bc.addEventListener("message", handler);
@@ -157,6 +159,20 @@ function StudentPlayContent() {
 
   const timeUpOnCurrent =
     Boolean(effectiveActive) && remainingSec !== null && remainingSec <= 0 && !liveEnded;
+
+  const allRoundsDone = useMemo(() => {
+    const q = effectiveActive;
+    if (
+      !submitted ||
+      !currentQuestion ||
+      !q ||
+      typeof q.question_total !== "number" ||
+      q.question_index === undefined
+    ) {
+      return false;
+    }
+    return q.question_index + 1 >= q.question_total;
+  }, [submitted, currentQuestion, effectiveActive]);
 
   const loadMyResult = useCallback(async () => {
     if (!sessionId || !user?.id) {
@@ -263,7 +279,7 @@ function StudentPlayContent() {
                   <CardDescription>강사가 세션을 마쳤어요. 아래에서 내 점수를 불러올 수 있습니다.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button type="button" onClick={loadMyResult} disabled={resultLoading}>
+                  <Button type="button" onClick={() => void loadMyResult()} disabled={resultLoading}>
                     {resultLoading ? "불러오는 중…" : "내 결과 보기"}
                   </Button>
                   {myResultRow ? (
@@ -285,7 +301,39 @@ function StudentPlayContent() {
               </Card>
             ) : null}
 
-            {!liveEnded && currentQuestion ? (
+            {!liveEnded && allRoundsDone ? (
+              <Card className="border-primary/25 bg-primary/[0.04] shadow-lg">
+                <CardHeader>
+                  <CardTitle>이 세트 문항을 모두 제출했습니다</CardTitle>
+                  <CardDescription>
+                    강사가 세션을 종료할 때까지 기다릴 수도 있고, 아래에서 바로 나가거나 집계가 올랐는지 확인할 수도
+                    있어요.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button type="button" onClick={() => void loadMyResult()} disabled={resultLoading}>
+                    {resultLoading ? "불러오는 중…" : "내 집계 결과 보기"}
+                  </Button>
+                  {myResultRow ? (
+                    <div className="rounded-xl border border-border bg-card p-4 text-sm">
+                      <p className="font-semibold">{myResultRow.nickname}</p>
+                      <p className="mt-1 text-muted-foreground">
+                        점수 <span className="font-mono font-medium text-foreground">{myResultRow.score}</span> · 등급{" "}
+                        <span className="text-foreground">{myResultRow.grade}</span>
+                      </p>
+                    </div>
+                  ) : null}
+                  <Link
+                    href="/student/dashboard"
+                    className={cn(buttonVariants({ variant: "default" }), "inline-flex w-full justify-center")}
+                  >
+                    대시보드로 이동
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {!liveEnded && !allRoundsDone && currentQuestion ? (
               <>
                 {timeUpOnCurrent && !submitted ? (
                   <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-950 dark:text-amber-100">
@@ -316,10 +364,35 @@ function StudentPlayContent() {
                         : undefined
                   }
                 />
+                {submitted ? (
+                  <div className="rounded-xl border border-border/80 bg-muted/25 px-4 py-3 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      다음 문항은 강사가 시작할 때까지 기다려 주세요. 세션이 끝났다면 상단의 결과 링크나 아래를 이용해
+                      주세요.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                      <Link
+                        href="/student/dashboard"
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "justify-center")}
+                      >
+                        대시보드
+                      </Link>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => void loadMyResult()}
+                        disabled={resultLoading}
+                      >
+                        {resultLoading ? "불러오는 중…" : "내 결과 불러오기"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </>
             ) : null}
 
-            {!liveEnded && !currentQuestion ? (
+            {!liveEnded && !allRoundsDone && !currentQuestion ? (
               <Card className="border-border/90 shadow-lg">
                 <CardContent className="py-14 text-center">
                   <p className="text-base font-medium text-foreground">문항 대기</p>

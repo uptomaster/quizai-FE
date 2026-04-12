@@ -13,6 +13,9 @@ export type LiveQuizBroadcastPayload = {
     options: string[];
     time_limit: number;
     startedAt: number;
+    /** 0-based. 있으면 수강생 쪽에서 마지막 문항 제출 후 완료 UI를 띄울 수 있음 */
+    question_index?: number;
+    question_total?: number;
   } | null;
 };
 
