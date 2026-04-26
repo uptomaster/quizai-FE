@@ -2,6 +2,7 @@
 
 import { ConnectionStatus } from "@/components/common/connection-status";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
+import { stableParticipantAlias } from "@/lib/participant-anonymize";
 import { cn } from "@/lib/utils";
 import type { LiveSessionState } from "@/lib/quiz-ws-live-state";
 
@@ -53,7 +54,12 @@ export function LiveQuizStatusPanel({
   const distMax = showDistribution ? Math.max(1, ...dist) : 1;
 
   return (
-    <div className={cn("rounded-2xl border border-border bg-muted/30 p-4 md:p-5", className)}>
+    <div
+      className={cn(
+        "rounded-[1.25rem] border border-border/60 bg-muted/25 p-4 ring-1 ring-black/[0.03] dark:bg-muted/15 dark:ring-white/[0.04] md:rounded-3xl md:p-5",
+        className,
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-sm font-medium text-foreground">실시간</p>
         {showConnectionChip ? <ConnectionStatus isConnected={isConnected} /> : null}
@@ -128,12 +134,12 @@ export function LiveQuizStatusPanel({
 
       {showRoster ? (
         <div className="mt-4">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">참여자</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">참여자 (익명)</p>
           <div className="max-h-48 overflow-auto rounded-xl border border-border">
             <table className="w-full text-left text-xs">
               <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
                 <tr>
-                  <th className="px-3 py-2 font-semibold">표시 이름</th>
+                  <th className="px-3 py-2 font-semibold">익명 ID</th>
                   {showRoleCol ? <th className="px-3 py-2 font-semibold">역할</th> : null}
                   <th className="px-3 py-2 font-semibold">입장</th>
                   <th className="px-3 py-2 font-semibold">이번 문항</th>
@@ -155,7 +161,9 @@ export function LiveQuizStatusPanel({
                       key={`${p.userId ?? "noid"}-${coerceRenderableText(p.nickname) || "u"}-${idx}`}
                       className="border-t border-border/50"
                     >
-                      <td className="px-3 py-2 font-medium">{coerceRenderableText(p.nickname) || "—"}</td>
+                      <td className="px-3 py-2 font-medium">
+                        {stableParticipantAlias((p.userId ?? p.nickname).trim() || `row-${idx}`)}
+                      </td>
                       {showRoleCol ? (
                         <td className="px-3 py-2 text-muted-foreground">
                           {p.role ? coerceRenderableText(p.role) : "—"}

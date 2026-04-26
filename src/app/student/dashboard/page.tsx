@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { FlowPageHeader } from "@/components/common/flow-page-header";
+import { FlowSurface } from "@/components/common/flow-surface";
 import { SessionResultPanel } from "@/components/student/session-result-panel";
 import { StudentFlowRail } from "@/components/student/student-flow-rail";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatTile } from "@/components/common/stat-tile";
 import { useSessionResultQuery } from "@/hooks/api/use-session-result-query";
 import { useStudentQuizResultsQuery } from "@/hooks/api/use-student-quiz-results-query";
@@ -62,10 +62,11 @@ function StudentDashboardInner() {
   const latestGrade = summaries[0]?.grade;
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       <FlowPageHeader
         rail={<StudentFlowRail />}
         title="결과"
+        description="참여한 퀴즈 요약과, 세션별 상세·순위(익명)를 볼 수 있어요."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => window.location.assign("/student/join")}>
@@ -100,12 +101,14 @@ function StudentDashboardInner() {
         />
       </div>
 
-      <Card id="quiz-results" className="scroll-mt-6 border-primary/12 shadow-[0_8px_32px_-12px_rgba(15,23,42,0.09)]">
-        <CardHeader>
-          <CardTitle>퀴즈 결과</CardTitle>
-          <CardDescription>세션을 선택하면 상세 점수와 문항별 결과를 불러옵니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <FlowSurface
+        id="quiz-results"
+        kicker="기록"
+        title="퀴즈 결과"
+        description="세션을 고르면 상세 점수와 순위·문항 요약을 불러옵니다."
+        className="scroll-mt-8 border-primary/15"
+      >
+        <div className="space-y-6">
           {myResultsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">참여 기록을 불러오는 중…</p>
           ) : myResultsQuery.isError ? (
@@ -122,10 +125,10 @@ function StudentDashboardInner() {
                     type="button"
                     onClick={() => setSelectedSessionId(row.session_id)}
                     className={cn(
-                      "w-full rounded-2xl border p-4 text-left text-sm shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)] transition-all",
+                      "w-full rounded-2xl border p-4 text-left text-sm ring-1 ring-transparent transition-all",
                       selectedSessionId === row.session_id
-                        ? "border-primary/50 bg-primary/[0.06] shadow-[0_6px_20px_-8px_rgba(79,70,229,0.2)]"
-                        : "border-border/60 bg-card hover:border-primary/35 hover:shadow-[0_8px_24px_-10px_rgba(15,23,42,0.1)]",
+                        ? "border-primary/45 bg-primary/[0.07] ring-primary/15 shadow-[0_12px_40px_-16px_rgba(255,111,15,0.22)]"
+                        : "border-border/60 bg-card/80 hover:border-primary/30 hover:bg-card hover:ring-black/[0.04] dark:hover:ring-white/[0.06]",
                     )}
                   >
                     <p className="font-semibold text-foreground">
@@ -147,18 +150,17 @@ function StudentDashboardInner() {
           )}
 
           {selectedSessionId ? (
-            <div className="border-t border-border/80 pt-6">
-              <p className="mb-3 text-sm font-medium text-foreground">선택한 퀴즈 상세</p>
+            <div className="border-t border-border/60 pt-6">
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">선택 세션</p>
               <SessionResultPanel
                 result={resultQuery.data}
                 isLoading={resultQuery.isFetching}
                 highlightUserId={user?.id}
-                highlightNickname={user?.name}
               />
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </FlowSurface>
     </section>
   );
 }
@@ -167,7 +169,15 @@ export default function StudentDashboardPage() {
   return (
     <Suspense
       fallback={
-        <section className="space-y-6 p-4 text-sm text-muted-foreground">대시보드를 불러오는 중…</section>
+        <section className="space-y-4 p-4">
+          <div className="h-8 max-w-[200px] animate-pulse rounded-xl bg-muted/60" />
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="h-24 animate-pulse rounded-3xl bg-muted/40" />
+            <div className="h-24 animate-pulse rounded-3xl bg-muted/40" />
+            <div className="h-24 animate-pulse rounded-3xl bg-muted/40" />
+          </div>
+          <p className="text-center text-sm text-muted-foreground">대시보드를 불러오는 중…</p>
+        </section>
       }
     >
       <StudentDashboardInner />

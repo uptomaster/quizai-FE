@@ -71,10 +71,10 @@ const SidebarLinks = ({
           href={item.href}
           onClick={onSelect}
           className={cn(
-            "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[15px] font-medium transition-colors",
+            "flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2 text-[15px] font-medium transition-all",
             active
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              ? "border-primary/15 bg-primary/[0.08] text-primary shadow-sm"
+              : "text-muted-foreground hover:border-border/60 hover:bg-muted/50 hover:text-foreground",
           )}
         >
           <span className={cn("opacity-90", active && "text-primary")}>{item.icon}</span>
@@ -126,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen max-w-[1200px] gap-4 p-3 md:gap-6 md:p-6">
         <aside className="hidden w-[220px] shrink-0 md:block">
-          <div className="sticky top-6 flex max-h-[calc(100dvh-3rem)] flex-col gap-6 overflow-y-auto rounded-2xl border border-border bg-card p-4">
+          <div className="sticky top-6 flex max-h-[calc(100dvh-3rem)] flex-col gap-6 overflow-y-auto rounded-3xl border border-border/70 bg-card/85 p-4 shadow-none ring-1 ring-black/[0.04] backdrop-blur-md dark:bg-card/50 dark:ring-white/[0.06]">
             <div className="flex items-center gap-2.5">
               <SiteLogo size={44} decorative className="rounded-xl" />
               <div className="min-w-0">
@@ -139,7 +139,7 @@ export function AppShell({ children }: AppShellProps) {
 
         <div className="flex min-h-[calc(100dvh-1.5rem)] min-w-0 flex-1 flex-col gap-4">
           <header className="sticky top-3 z-20 md:top-6">
-            <div className="flex h-12 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 md:h-12 md:px-4">
+            <div className="flex h-12 items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/90 px-3 shadow-none ring-1 ring-black/[0.04] backdrop-blur-md dark:bg-card/55 dark:ring-white/[0.06] md:h-12 md:px-4">
               <div className="flex min-w-0 flex-1 items-center gap-2 md:flex-none md:min-w-0">
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger
@@ -185,7 +185,13 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </header>
 
-          <main className="flex-1 pb-6 md:pb-8">{children}</main>
+          <main className="relative flex-1 pb-6 md:pb-8">
+            <div
+              className="pointer-events-none absolute inset-0 -z-10 mesh-page-bg rounded-[1.75rem] opacity-80 md:rounded-[2rem]"
+              aria-hidden
+            />
+            <div className="relative">{children}</div>
+          </main>
         </div>
       </div>
     </div>

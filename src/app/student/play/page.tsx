@@ -4,10 +4,10 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
+import { FlowSurface } from "@/components/common/flow-surface";
 import { QuizQuestionView, formatQuizClock } from "@/components/quiz/quiz-question-view";
 import { StudentFlowRail } from "@/components/student/student-flow-rail";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuizDeadlineCountdown } from "@/hooks/use-quiz-deadline-countdown";
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
@@ -214,17 +214,22 @@ function StudentPlayContent() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <div className="border-b border-border bg-background px-3 py-2">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 mesh-page-bg opacity-90"
+        aria-hidden
+      />
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-card/70 px-3 py-2.5 backdrop-blur-md md:px-4">
         <StudentFlowRail />
-        <div className="mt-1.5 flex justify-end">
-          <Link href="/student/dashboard" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
-            결과
-          </Link>
-        </div>
+        <Link
+          href="/student/dashboard"
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0 text-xs font-semibold")}
+        >
+          내 결과
+        </Link>
       </div>
       {sessionId ? (
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border/80 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border/50 bg-gradient-to-r from-primary/[0.07] via-card/80 to-background px-4 py-3.5 backdrop-blur-md supports-[backdrop-filter]:bg-card/70 md:px-5">
           <div className="flex min-w-0 flex-col">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               남은 시간
@@ -257,34 +262,36 @@ function StudentPlayContent() {
         </header>
       ) : null}
 
-      <main className="flex flex-1 flex-col justify-center px-4 py-6">
+      <main className="flex flex-1 flex-col justify-center px-4 py-8 md:py-10">
         {!sessionId ? (
-          <Card className="mx-auto w-full max-w-md border-dashed shadow-sm">
-            <CardHeader>
-              <CardTitle>세션 없음</CardTitle>
-              <CardDescription>참여 코드로 입장한 뒤 이 화면으로 이동해야 합니다.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" type="button" onClick={() => window.location.assign("/student/join")}>
-                참여 코드 입력
-              </Button>
-            </CardContent>
-          </Card>
+          <FlowSurface
+            variant="ghost"
+            kicker="안내"
+            title="세션에 연결되지 않았어요"
+            description="참여 코드로 입장한 뒤 이 화면으로 이동해야 합니다."
+            className="mx-auto w-full max-w-md border-dashed"
+          >
+            <Button className="w-full" type="button" size="lg" onClick={() => window.location.assign("/student/join")}>
+              참여 코드 입력
+            </Button>
+          </FlowSurface>
         ) : (
-          <div className="mx-auto w-full max-w-lg space-y-4">
+          <div className="mx-auto w-full max-w-3xl space-y-6">
             {liveEnded ? (
-              <Card className="border-emerald-500/30 bg-emerald-500/[0.06] shadow-lg">
-                <CardHeader>
-                  <CardTitle>퀴즈가 종료되었습니다</CardTitle>
-                  <CardDescription>강사가 세션을 마쳤어요. 아래에서 내 점수를 불러올 수 있습니다.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button type="button" onClick={() => void loadMyResult()} disabled={resultLoading}>
+              <FlowSurface
+                kicker="종료"
+                title="퀴즈가 종료되었습니다"
+                description="강사가 세션을 마쳤어요. 아래에서 내 점수를 불러올 수 있습니다."
+                variant="accent"
+                className="border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.08] via-card/85 to-background"
+              >
+                <div className="space-y-4">
+                  <Button type="button" size="lg" onClick={() => void loadMyResult()} disabled={resultLoading}>
                     {resultLoading ? "불러오는 중…" : "내 결과 보기"}
                   </Button>
                   {myResultRow ? (
-                    <div className="rounded-xl border border-border bg-card p-4 text-sm">
-                      <p className="font-semibold">{myResultRow.nickname}</p>
+                    <div className="rounded-2xl border border-border/60 bg-background/80 p-4 text-sm ring-1 ring-black/[0.03]">
+                      <p className="font-semibold">나</p>
                       <p className="mt-1 text-muted-foreground">
                         점수 <span className="font-mono font-medium text-foreground">{myResultRow.score}</span> · 등급{" "}
                         <span className="text-foreground">{myResultRow.grade}</span>
@@ -293,30 +300,28 @@ function StudentPlayContent() {
                   ) : null}
                   <Link
                     href="/student/dashboard"
-                    className={cn(buttonVariants({ variant: "outline" }), "inline-flex w-full justify-center")}
+                    className={cn(buttonVariants({ variant: "outline", size: "lg" }), "inline-flex w-full justify-center")}
                   >
                     대시보드로
                   </Link>
-                </CardContent>
-              </Card>
+                </div>
+              </FlowSurface>
             ) : null}
 
             {!liveEnded && allRoundsDone ? (
-              <Card className="border-primary/25 bg-primary/[0.04] shadow-lg">
-                <CardHeader>
-                  <CardTitle>이 세트 문항을 모두 제출했습니다</CardTitle>
-                  <CardDescription>
-                    강사가 세션을 종료할 때까지 기다릴 수도 있고, 아래에서 바로 나가거나 집계가 올랐는지 확인할 수도
-                    있어요.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button type="button" onClick={() => void loadMyResult()} disabled={resultLoading}>
+              <FlowSurface
+                kicker="완료"
+                title="이 세트 문항을 모두 제출했습니다"
+                description="강사가 세션을 종료할 때까지 기다릴 수도 있고, 아래에서 바로 나가거나 집계가 올랐는지 확인할 수도 있어요."
+                variant="accent"
+              >
+                <div className="space-y-4">
+                  <Button type="button" size="lg" onClick={() => void loadMyResult()} disabled={resultLoading}>
                     {resultLoading ? "불러오는 중…" : "내 집계 결과 보기"}
                   </Button>
                   {myResultRow ? (
-                    <div className="rounded-xl border border-border bg-card p-4 text-sm">
-                      <p className="font-semibold">{myResultRow.nickname}</p>
+                    <div className="rounded-2xl border border-border/60 bg-background/80 p-4 text-sm ring-1 ring-black/[0.03]">
+                      <p className="font-semibold">나</p>
                       <p className="mt-1 text-muted-foreground">
                         점수 <span className="font-mono font-medium text-foreground">{myResultRow.score}</span> · 등급{" "}
                         <span className="text-foreground">{myResultRow.grade}</span>
@@ -325,12 +330,12 @@ function StudentPlayContent() {
                   ) : null}
                   <Link
                     href="/student/dashboard"
-                    className={cn(buttonVariants({ variant: "default" }), "inline-flex w-full justify-center")}
+                    className={cn(buttonVariants({ variant: "default", size: "lg" }), "inline-flex w-full justify-center")}
                   >
                     대시보드로 이동
                   </Link>
-                </CardContent>
-              </Card>
+                </div>
+              </FlowSurface>
             ) : null}
 
             {!liveEnded && !allRoundsDone && currentQuestion ? (
@@ -365,7 +370,7 @@ function StudentPlayContent() {
                   }
                 />
                 {submitted ? (
-                  <div className="rounded-xl border border-border/80 bg-muted/25 px-4 py-3 text-center">
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-3 text-center ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
                     <p className="text-xs text-muted-foreground">
                       다음 문항은 강사가 시작할 때까지 기다려 주세요. 세션이 끝났다면 상단의 결과 링크나 아래를 이용해
                       주세요.
@@ -393,16 +398,15 @@ function StudentPlayContent() {
             ) : null}
 
             {!liveEnded && !allRoundsDone && !currentQuestion ? (
-              <Card className="border-border/90 shadow-lg">
-                <CardContent className="py-14 text-center">
-                  <p className="text-base font-medium text-foreground">문항 대기</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {socket.isConnected
-                      ? "지금 진행 중인 문항이 열리면 여기서 풀 수 있어요. 늦게 들어온 경우 이전 문항은 건너뜁니다."
-                      : "연결 중…"}
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="rounded-[1.35rem] border border-dashed border-border/70 bg-muted/15 px-6 py-16 text-center ring-1 ring-black/[0.03] dark:ring-white/[0.05] md:rounded-3xl md:py-20">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary">대기</p>
+                <p className="mt-3 text-lg font-semibold text-foreground">문항이 아직 열리지 않았어요</p>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+                  {socket.isConnected
+                    ? "지금 진행 중인 문항이 열리면 여기서 풀 수 있어요. 늦게 들어온 경우 이전 문항은 건너뜁니다."
+                    : "실시간 연결을 맺는 중입니다."}
+                </p>
+              </div>
             ) : null}
           </div>
         )}

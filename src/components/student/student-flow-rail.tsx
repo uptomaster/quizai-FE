@@ -31,28 +31,32 @@ export function StudentFlowRail() {
   return (
     <nav
       aria-label="진행 순서"
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px] text-muted-foreground"
+      className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/30 p-1 text-[13px] backdrop-blur-sm dark:bg-muted/20"
     >
-      {steps.map((s, i) => (
-        <span key={s.id} className="flex items-center gap-1">
-          {i > 0 ? <span className="text-border">/</span> : null}
+      {steps.map((s) => {
+        const on = isActive(s);
+        return (
           <Link
+            key={s.id}
             href={s.href}
             className={cn(
-              "rounded-md px-1.5 py-0.5 font-medium transition-colors",
-              isActive(s) ? "text-primary" : "hover:text-foreground",
+              "rounded-xl px-3 py-1.5 font-semibold transition-all",
+              on
+                ? "bg-card text-primary shadow-sm ring-1 ring-black/[0.04] dark:bg-card/80 dark:ring-white/[0.08]"
+                : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
             )}
           >
             {s.label}
           </Link>
-        </span>
-      ))}
-      <span className="text-border">·</span>
+        );
+      })}
       <Link
         href="/student/lectures"
         className={cn(
-          "rounded-md px-1.5 py-0.5 text-[12px] transition-colors",
-          phase === "lectures" ? "font-medium text-foreground" : "hover:text-foreground",
+          "rounded-xl px-3 py-1.5 text-[12px] font-semibold transition-all",
+          phase === "lectures"
+            ? "bg-card text-primary shadow-sm ring-1 ring-black/[0.04] dark:bg-card/80 dark:ring-white/[0.08]"
+            : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
         )}
       >
         강의

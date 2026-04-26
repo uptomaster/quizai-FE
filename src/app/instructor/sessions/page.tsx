@@ -13,6 +13,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { History, Sparkles } from "lucide-react";
 
 import { ConnectionStatus } from "@/components/common/connection-status";
 import { FlowPageHeader } from "@/components/common/flow-page-header";
@@ -20,14 +21,15 @@ import { LiveQuizStatusPanel } from "@/components/common/live-quiz-status-panel"
 import { TechDetails } from "@/components/common/tech-details";
 import { InstructorFlowRail } from "@/components/instructor/instructor-flow-rail";
 import { QuizQuestionView, formatQuizClock } from "@/components/quiz/quiz-question-view";
+import { FlowSurface } from "@/components/common/flow-surface";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useQuizDeadlineCountdown } from "@/hooks/use-quiz-deadline-countdown";
 import { useStartSessionMutation } from "@/hooks/api/use-start-session-mutation";
 import { useQuizSocket } from "@/hooks/use-quiz-socket";
 import { AUTH_KEYS, getStoredUser } from "@/lib/auth-storage";
 import { getInstructorQuizHistoryByQuizSetId } from "@/lib/instructor-quiz-history";
+import { stableParticipantAlias } from "@/lib/participant-anonymize";
 import {
   clearPersistedInstructorLiveSession,
   readPersistedInstructorLiveSession,
@@ -42,6 +44,10 @@ import {
 import { readLastQuizSet, type LastQuizSetInfo } from "@/lib/last-quiz-set";
 import type { QuizWsEvent } from "@/lib/quiz-ws-live-state";
 import { coerceRenderableText } from "@/lib/normalize-quiz-shape";
+import {
+  inferSessionListTitle,
+  rememberSessionLectureLabel,
+} from "@/lib/session-display-title";
 import {
   isSessionResultVacantShell,
   sessionResultMissingDetailRows,
@@ -93,13 +99,13 @@ function describeLiveEvent(event: QuizWsEvent | null): string {
   }
   switch (event.type) {
     case "session_joined":
-      return `${coerceRenderableText(event.payload.nickname) || "참여자"}님이 퀴즈방에 들어왔습니다. (함께하는 인원 약 ${event.payload.participant_count}명)`;
+      return `참여자가 퀴즈방에 들어왔습니다. (함께하는 인원 약 ${event.payload.participant_count}명)`;
     case "quiz_started":
       return "새 문항이 시작되었습니다. 수강생 화면에 문제가 열렸는지 확인하세요.";
     case "answer_update":
       return `응답 현황: ${event.payload.answered}/${event.payload.total}명 제출 (${Math.round(event.payload.rate)}%).`;
     case "participant_answer":
-      return `${coerceRenderableText(event.payload.nickname) || "참여자"}님이 현재 문항 답안을 ${event.payload.submitted ? "제출했습니다" : "취소/대기 상태입니다"}.`;
+      return `참여자가 현재 문항 답안을 ${event.payload.submitted ? "제출했습니다" : "취소/대기 상태입니다"}.`;
     case "answer_revealed":
       return "정답이 공개되었습니다.";
     case "session_ended":
@@ -119,7 +125,6 @@ function InstructorSessionsPageInner() {
   const [useCustomQuizSetId, setUseCustomQuizSetId] = useState(false);
   const [timeLimit, setTimeLimit] = useState("30");
   const [session, setSession] = useState<Session | null>(null);
-  const [announcement, setAnnouncement] = useState("");
   const [questionId, setQuestionId] = useState("");
   const [answer, setAnswer] = useState("0");
   /** 로컬에 저장된 세트 순서로 강사 화면에 즉시 표시 (-1 = 아직 「다음 문항」 미클릭) */
@@ -165,6 +170,18 @@ function InstructorSessionsPageInner() {
         setUseCustomQuizSetId(true);
       }
       setTimeLimit("30");
+      const qidHist = (fromUrlQuizSet || stored?.quizSetId || "").trim();
+      if (qidHist) {
+        const inferredHist = inferSessionListTitle({
+          quizSetId: qidHist,
+          lastQuizHint: stored,
+          useCustomQuizSetId: !(Boolean(fromUrlQuizSet?.trim()) || Boolean(stored?.quizSetId?.trim())),
+        });
+        const labelHist =
+          inferredHist ??
+          `퀴즈 세트 ${qidHist.length > 14 ? `${qidHist.slice(0, 14)}…` : qidHist}`;
+        rememberSessionLectureLabel(sessionFromUrl, labelHist);
+      }
       return;
     }
 
@@ -178,6 +195,19 @@ function InstructorSessionsPageInner() {
       if (fromUrlQuizSet) {
         setQuizSetId(fromUrlQuizSet);
         setUseCustomQuizSetId(false);
+      }
+      const qid = (fromUrlQuizSet || persisted.quizSetId).trim();
+      const custom = fromUrlQuizSet ? false : persisted.useCustomQuizSetId;
+      const inferred = inferSessionListTitle({
+        quizSetId: qid,
+        lastQuizHint: stored,
+        useCustomQuizSetId: custom,
+      });
+      const label =
+        inferred ??
+        (qid ? `퀴즈 세트 ${qid.length > 14 ? `${qid.slice(0, 14)}…` : qid}` : null);
+      if (label) {
+        rememberSessionLectureLabel(persisted.session.session_id, label);
       }
       return;
     }
@@ -442,6 +472,16 @@ function InstructorSessionsPageInner() {
         timeLimit,
         useCustomQuizSetId,
       });
+      const qid = quizSetId.trim();
+      const inferred = inferSessionListTitle({
+        quizSetId: qid,
+        lastQuizHint,
+        useCustomQuizSetId,
+      });
+      rememberSessionLectureLabel(
+        startedSession.session_id,
+        inferred ?? (qid ? `퀴즈 세트 ${qid.length > 14 ? `${qid.slice(0, 14)}…` : qid}` : "라이브 세션"),
+      );
       toast.success("라이브 퀴즈방이 열렸습니다. 참여코드를 학생에게 알려주세요.");
     } catch {
       // api-client 인터셉터에서 토스트를 처리합니다.
@@ -491,15 +531,6 @@ function InstructorSessionsPageInner() {
     }
   };
 
-  const handleSendAnnouncement = () => {
-    if (!announcement.trim()) {
-      toast.error("공지 내용을 입력해주세요.");
-      return;
-    }
-    toast.success("수강생에게 공지를 보냈습니다.");
-    setAnnouncement("");
-  };
-
   const handleNextQuestion = () => {
     if (localQuestions.length > 0) {
       const next = localRoundIndex + 1;
@@ -514,21 +545,31 @@ function InstructorSessionsPageInner() {
   };
 
   return (
-    <section className="space-y-6">
-      <FlowPageHeader rail={<InstructorFlowRail />} title="라이브 방" description="방을 열면 참여 코드가 나와요." />
+    <section className="space-y-8">
+      <FlowPageHeader
+        rail={<InstructorFlowRail />}
+        title="라이브 방"
+        description="왼쪽에서 방을 열고 문항을 진행하세요. 오른쪽 열에서 실시간 참여·이벤트·세션 집계를 함께 봅니다."
+      />
 
       {!shouldPersistLiveSession ? (
-        <p className="rounded-xl border border-border/80 bg-muted/35 px-4 py-2.5 text-sm text-muted-foreground">
-          대시보드에서 고른 과거 세션만 보고 있어요. 브라우저에 남아 있는 진행 중 퀴즈방 저장은 덮어쓰지 않습니다.
-        </p>
+        <div className="flex gap-4 rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.14] via-amber-500/[0.08] to-transparent px-4 py-4 shadow-sm ring-1 ring-amber-500/15 dark:from-amber-400/15 dark:via-amber-400/10 dark:to-transparent dark:ring-amber-400/20 md:px-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-900 dark:bg-amber-400/25 dark:text-amber-50">
+            <History className="h-5 w-5" strokeWidth={2} aria-hidden />
+          </div>
+          <p className="min-w-0 flex-1 text-sm leading-relaxed text-amber-950 dark:text-amber-50/95">
+            <span className="font-semibold text-amber-950 dark:text-amber-50">과거 세션 보기</span>
+            <span className="mt-1 block text-[13px] font-normal text-amber-900/90 dark:text-amber-100/85">
+              대시보드에서 고른 기록만 열려 있어요. 브라우저에 남아 있는 진행 중 퀴즈방 저장은 덮어쓰지 않습니다.
+            </span>
+          </p>
+        </div>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>방 열기</CardTitle>
-          <CardDescription>퀴즈 세트와 제한 시간을 정합니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
+        <div className="space-y-8 lg:col-span-7">
+          <FlowSurface kicker="시작" title="방 열기" description="퀴즈 세트와 제한 시간을 정합니다.">
+            <div className="space-y-4">
           <form onSubmit={handleStartSession} className="grid gap-3 md:grid-cols-[1fr_140px_auto]">
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground" htmlFor="quiz-set-field">
@@ -537,20 +578,29 @@ function InstructorSessionsPageInner() {
               {showQuizSummary && lastQuizHint ? (
                 <div
                   id="quiz-set-field"
-                  className="space-y-2 rounded-xl border border-border bg-muted/25 p-4"
+                  className="relative space-y-3 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-muted/20 to-background p-4 shadow-sm ring-1 ring-primary/10 dark:from-primary/15 dark:via-muted/10 dark:to-background/80 md:rounded-3xl md:p-5"
                 >
-                  <div>
-                    <p className="font-semibold leading-snug">
-                      {lastQuizHint.lectureTitle ?? "퀴즈 빌더에서 만든 세트"}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      문항 {lastQuizHint.totalQuestions}개가 연결돼 있어요.
-                    </p>
-                    <p className="mt-2 break-all font-mono text-xs leading-relaxed text-foreground">
-                      퀴즈 세트 번호 {lastQuizHint.quizSetId}
-                    </p>
+                  <div
+                    className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary/10 blur-2xl"
+                    aria-hidden
+                  />
+                  <div className="relative flex gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                      <Sparkles className="h-5 w-5" strokeWidth={2} aria-hidden />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold leading-snug text-foreground">
+                        {lastQuizHint.lectureTitle ?? "퀴즈 빌더에서 만든 세트"}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        문항 {lastQuizHint.totalQuestions}개가 연결돼 있어요.
+                      </p>
+                      <p className="mt-2 break-all font-mono text-xs leading-relaxed text-foreground/90">
+                        퀴즈 세트 번호 {lastQuizHint.quizSetId}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="relative flex flex-wrap gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={handleCopyQuizSetHint}>
                       세트 번호 복사
                     </Button>
@@ -605,14 +655,18 @@ function InstructorSessionsPageInner() {
           </form>
 
           {session ? (
-            <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/[0.04] p-5">
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">참여코드</p>
-                  <p className="mt-1 break-all font-mono text-2xl font-bold tracking-[0.12em] text-primary sm:text-3xl md:text-4xl">
+            <div className="relative space-y-4 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/[0.12] via-primary/[0.04] to-transparent p-5 shadow-md shadow-primary/10 ring-1 ring-primary/15 dark:shadow-primary/5 md:rounded-3xl md:p-6">
+              <div
+                className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/15 blur-3xl"
+                aria-hidden
+              />
+              <div className="relative flex flex-wrap items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/80">참여 코드</p>
+                  <p className="mt-1 break-all font-mono text-2xl font-black tracking-[0.14em] text-primary drop-shadow-sm sm:text-3xl md:text-4xl">
                     {session.session_code}
                   </p>
-                  <p className="mt-2 text-xs text-muted-foreground">{liveRoomPhaseLabel(session.status)}</p>
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">{liveRoomPhaseLabel(session.status)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" onClick={handleCopyJoinCode}>
@@ -633,36 +687,33 @@ function InstructorSessionsPageInner() {
               </TechDetails>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+            </div>
+          </FlowSurface>
 
-      {session && socket.liveSession.liveEnded ? (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] px-4 py-3 text-sm text-foreground">
-          <p className="font-semibold text-amber-950 dark:text-amber-100">라이브 퀴즈가 종료되었습니다.</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            수강생 화면도 종료 안내를 받았을 거예요. 아래에서 결과를 확인하거나 방을 정리할 수 있습니다.
-          </p>
-        </div>
-      ) : null}
+          {session && socket.liveSession.liveEnded ? (
+            <div className="rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.12] via-background to-background px-4 py-4 text-sm text-foreground shadow-sm ring-1 ring-emerald-500/15 dark:from-emerald-400/15 md:px-5">
+              <p className="font-semibold text-emerald-900 dark:text-emerald-100">라이브 퀴즈가 종료되었습니다.</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                수강생 화면도 종료 안내를 받았을 거예요. 오른쪽에서 결과를 확인하거나 방을 정리할 수 있습니다.
+              </p>
+            </div>
+          ) : null}
 
-      {session ? (
-        <Card>
-          <CardHeader className="space-y-2 pb-2">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle>현재 문항</CardTitle>
-                {displayQuiz &&
+          {session ? (
+            <FlowSurface
+              kicker="진행"
+              title="현재 문항"
+              description={
+                displayQuiz &&
                 displayQuiz.question_total != null &&
-                displayQuiz.question_index != null ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    서버 기준 진행 {(displayQuiz.question_index ?? 0) + 1} / {displayQuiz.question_total}
-                  </p>
-                ) : null}
-              </div>
+                displayQuiz.question_index != null
+                  ? `서버 기준 진행 ${(displayQuiz.question_index ?? 0) + 1} / ${displayQuiz.question_total}`
+                  : "학생 화면과 같은 문항이 여기에 뜹니다."
+              }
+            >
+            <div className="mb-4 flex justify-end border-b border-border/50 pb-3">
               <div className="text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  남은 시간
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">남은 시간</p>
                 <p
                   className={cn(
                     "font-mono text-2xl font-bold tabular-nums",
@@ -673,8 +724,6 @@ function InstructorSessionsPageInner() {
                 </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="flex justify-center">
               {displayQuiz ? (
                 <QuizQuestionView
@@ -686,35 +735,38 @@ function InstructorSessionsPageInner() {
                   remainingSec={remainingSec}
                 />
               ) : (
-                <div className="w-full max-w-lg rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-                  <p className="text-base font-medium text-foreground">문항 대기</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {localQuestions.length === 0 ? "문항 대기" : "「다음 문항」을 눌러 시작하세요."}
+                <div className="w-full max-w-3xl rounded-2xl border border-dashed border-border/70 bg-gradient-to-b from-muted/25 to-muted/5 px-6 py-14 text-center shadow-inner md:rounded-3xl">
+                  <p className="text-base font-semibold text-foreground">문항 대기</p>
+                  <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                    {localQuestions.length === 0
+                      ? "퀴즈 세트에 문항이 없거나 아직 불러오지 못했어요."
+                      : "「다음 문항」을 눌러 시작하세요."}
                   </p>
                 </div>
               )}
             </div>
             <Button
               type="button"
-              className="w-full sm:w-auto"
+              className="mt-4 w-full sm:w-auto"
               onClick={handleNextQuestion}
               disabled={!sessionId || !socket.isConnected || socket.liveSession.liveEnded}
             >
               다음 문항
             </Button>
-          </CardContent>
-        </Card>
-      ) : null}
+          </FlowSurface>
+          ) : null}
+        </div>
 
-      <Card>
-        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle>실시간</CardTitle>
-            <CardDescription>입장·제출이 여기 반영돼요.</CardDescription>
-          </div>
-          <ConnectionStatus isConnected={socket.isConnected} />
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <div className="space-y-8 lg:col-span-5">
+          {session ? (
+            <>
+      <FlowSurface
+        kicker="실시간"
+        title="라이브 피드"
+        description="입장·제출이 여기 반영돼요."
+        actions={<ConnectionStatus isConnected={socket.isConnected} />}
+      >
+        <div className="space-y-4">
           {!sessionId ? (
             <p className="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-xs text-muted-foreground">
               먼저 방을 열어 주세요.
@@ -776,16 +828,14 @@ function InstructorSessionsPageInner() {
               </Button>
             </div>
           </TechDetails>
-        </CardContent>
-      </Card>
+        </div>
+      </FlowSurface>
 
-      {session ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>세션 결과</CardTitle>
-            <CardDescription>종료 후 집계 API로 요약을 불러옵니다.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <FlowSurface
+        kicker="집계"
+        title="세션 결과"
+        description="종료 후 집계 API로 요약을 불러옵니다."
+      >
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -800,7 +850,7 @@ function InstructorSessionsPageInner() {
               <p className="text-sm text-destructive">{sessionResultError}</p>
             ) : null}
             {sessionResult ? (
-              <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 text-sm">
+              <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 text-sm ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
                 {isSessionResultVacantShell(sessionResult) ? (
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:text-amber-50">
                     <p className="font-semibold">공식 집계가 아직 비어 있습니다.</p>
@@ -863,7 +913,7 @@ function InstructorSessionsPageInner() {
                     <table className="w-full text-left text-xs">
                       <thead className="sticky top-0 bg-muted/90">
                         <tr>
-                          <th className="px-3 py-2">닉네임</th>
+                          <th className="px-3 py-2">참가자(익명)</th>
                           <th className="px-3 py-2">점수</th>
                           <th className="px-3 py-2">등급</th>
                           <th className="px-3 py-2 w-24">문항</th>
@@ -876,7 +926,7 @@ function InstructorSessionsPageInner() {
                           return (
                             <Fragment key={s.student_id}>
                               <tr className="border-t border-border/60">
-                                <td className="px-3 py-2 font-medium">{s.nickname}</td>
+                                <td className="px-3 py-2 font-medium">{stableParticipantAlias(s.student_id)}</td>
                                 <td className="px-3 py-2 tabular-nums">{formatQuizScorePoints(s.score)}</td>
                                 <td className="px-3 py-2 text-muted-foreground">{sessionStudentGradeLabel(s.grade)}</td>
                                 <td className="px-3 py-2">
@@ -966,7 +1016,7 @@ function InstructorSessionsPageInner() {
                         <ul className="max-h-40 space-y-1 overflow-auto text-xs text-muted-foreground">
                           {mergedLiveSession.participants.map((p, i) => (
                             <li key={`${p.userId ?? p.nickname}-${i}`}>
-                              · {coerceRenderableText(p.nickname) || "—"}
+                              · {stableParticipantAlias((p.userId ?? p.nickname).trim() || `idx-${i}`)}
                               {p.role ? ` (${p.role})` : ""}
                             </li>
                           ))}
@@ -977,22 +1027,18 @@ function InstructorSessionsPageInner() {
                 )}
               </div>
             ) : null}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <TechDetails title="공지 보내기 (선택)">
-        <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-          <Input
-            value={announcement}
-            onChange={(e) => setAnnouncement(e.target.value)}
-            placeholder="예: 잠시 후 2번째 퀴즈를 시작합니다."
-          />
-          <Button type="button" onClick={handleSendAnnouncement}>
-            보내기
-          </Button>
+      </FlowSurface>
+            </>
+          ) : (
+            <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-border/70 bg-muted/10 px-5 py-12 text-center">
+              <p className="text-sm font-semibold text-foreground">모니터링 패널</p>
+              <p className="max-w-[260px] text-xs leading-relaxed text-muted-foreground">
+                방을 연 뒤 이 열에서 참가자·이벤트·집계를 한눈에 볼 수 있어요.
+              </p>
+            </div>
+          )}
         </div>
-      </TechDetails>
+      </div>
     </section>
   );
 }
@@ -1001,7 +1047,11 @@ export default function InstructorSessionsPage() {
   return (
     <Suspense
       fallback={
-        <section className="space-y-6 p-4 text-sm text-muted-foreground">라이브 퀴즈 화면을 불러오는 중…</section>
+        <section className="space-y-4 p-4">
+          <div className="h-8 max-w-xs animate-pulse rounded-xl bg-muted/60" />
+          <div className="h-40 rounded-3xl border border-dashed border-border/60 bg-muted/20" />
+          <p className="text-center text-sm text-muted-foreground">라이브 화면을 불러오는 중…</p>
+        </section>
       }
     >
       <InstructorSessionsPageInner />

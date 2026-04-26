@@ -129,3 +129,17 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  /** 메인 캔버스에만 얹는 아주 옅은 오렌지 메시 — 카드 없이 깊이만 줍니다. */
+  .mesh-page-bg {
+    background-image:
+      radial-gradient(ellipse 100% 70% at 100% 0%, rgb(255 111 15 / 0.11), transparent 52%),
+      radial-gradient(ellipse 80% 55% at 0% 100%, rgb(255 111 15 / 0.07), transparent 48%);
+  }
+  .dark .mesh-page-bg {
+    background-image:
+      radial-gradient(ellipse 100% 70% at 100% 0%, rgb(255 143 79 / 0.14), transparent 52%),
+      radial-gradient(ellipse 80% 55% at 0% 100%, rgb(255 143 79 / 0.08), transparent 48%);
+  }
+}

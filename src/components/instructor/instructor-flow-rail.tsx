@@ -18,21 +18,27 @@ export function InstructorFlowRail() {
     pathname === href || (href !== "/instructor/dashboard" && pathname.startsWith(href));
 
   return (
-    <nav aria-label="진행 순서" className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px] text-muted-foreground">
-      {steps.map((s, i) => (
-        <span key={s.id} className="flex items-center gap-1">
-          {i > 0 ? <span className="text-border">/</span> : null}
+    <nav
+      aria-label="진행 순서"
+      className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/30 p-1 text-[13px] backdrop-blur-sm dark:bg-muted/20"
+    >
+      {steps.map((s) => {
+        const on = active(s.href);
+        return (
           <Link
+            key={s.id}
             href={s.href}
             className={cn(
-              "rounded-md px-1.5 py-0.5 font-medium transition-colors",
-              active(s.href) ? "text-primary" : "hover:text-foreground",
+              "rounded-xl px-3 py-1.5 font-semibold transition-all",
+              on
+                ? "bg-card text-primary shadow-sm ring-1 ring-black/[0.04] dark:bg-card/80 dark:ring-white/[0.08]"
+                : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
             )}
           >
             {s.label}
           </Link>
-        </span>
-      ))}
+        );
+      })}
     </nav>
   );
 }

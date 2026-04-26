@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { toast } from "sonner";
 
 import { FlowPageHeader } from "@/components/common/flow-page-header";
+import { FlowSurface } from "@/components/common/flow-surface";
 import { TechDetails } from "@/components/common/tech-details";
 import { InstructorFlowRail } from "@/components/instructor/instructor-flow-rail";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -297,11 +298,11 @@ export default function InstructorLecturesPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       <FlowPageHeader
         rail={<InstructorFlowRail />}
         title="강의·퀴즈"
-        description="PDF 올리면 퀴즈가 만들어져요."
+        description="강의를 고른 뒤 PDF를 올리면 문항이 생성됩니다. 아래 편집기에서 다듬고 라이브 방으로 넘어가세요."
         actions={
           <Button type="button" onClick={() => window.location.assign("/instructor/sessions")}>
             라이브 방
@@ -355,12 +356,8 @@ export default function InstructorLecturesPage() {
         </div>
       </TechDetails>
 
-      <Card className="border-primary/15">
-        <CardHeader>
-          <CardTitle>강의 선택</CardTitle>
-          <CardDescription>목록에서 고르거나 강의 ID를 직접 입력하세요.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <FlowSurface kicker="대상" title="강의 선택" description="목록에서 고르거나 강의 ID를 직접 입력하세요.">
+        <div className="space-y-3">
           {lecturesQuery.isLoading ? (
             <Skeleton className="h-10 w-full" />
           ) : (
@@ -409,8 +406,8 @@ export default function InstructorLecturesPage() {
           <Button type="button" variant="outline" size="sm" onClick={clearLectureSelection}>
             선택 초기화 (새 강의 만들기 준비)
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </FlowSurface>
 
       <Card
           className={`border-2 ${dragOver ? "border-primary bg-primary/5" : "border-dashed border-border bg-card"}`}

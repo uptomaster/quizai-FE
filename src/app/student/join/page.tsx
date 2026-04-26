@@ -5,10 +5,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { FlowPageHeader } from "@/components/common/flow-page-header";
+import { FlowSurface } from "@/components/common/flow-surface";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FlowPageHeader } from "@/components/common/flow-page-header";
 import { StudentFlowRail } from "@/components/student/student-flow-rail";
 import { Input } from "@/components/ui/input";
 import { useJoinSessionMutation } from "@/hooks/api/use-join-session-mutation";
@@ -60,10 +60,11 @@ export default function StudentJoinPage() {
   };
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       <FlowPageHeader
         rail={<StudentFlowRail />}
         title="참여 코드"
+        description="강사가 알려준 코드로 방에 들어가요."
         actions={
           <Link href="/student/lectures" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
             강의
@@ -71,14 +72,12 @@ export default function StudentJoinPage() {
         }
       />
 
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>입력</CardTitle>
-          <CardDescription>
-            {JOIN_CODE_MIN_LENGTH}~{JOIN_CODE_MAX_LENGTH}자 · 영문·숫자
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <FlowSurface
+        kicker="입장"
+        title="코드와 이름"
+        description={`참여 코드 ${JOIN_CODE_MIN_LENGTH}~${JOIN_CODE_MAX_LENGTH}자 · 영문·숫자`}
+        className="mx-auto max-w-md"
+      >
           <form onSubmit={handleJoin} className="space-y-3">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground" htmlFor="join-nickname">
@@ -111,8 +110,7 @@ export default function StudentJoinPage() {
               {joinSessionMutation.isPending ? "참여 중..." : "참여하기"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+      </FlowSurface>
     </section>
   );
 }
